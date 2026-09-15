@@ -1,0 +1,17 @@
+[package]
+name = "omarchy-studio"
+version = "0.1.0"
+edition = "2021"
+description = "A progressive native pixel game editor for Omarchy Linux"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/omacom/omarchy-studio"
+
+[dependencies]
+eframe = { version = "0.29", default-features = true }
+egui = "0.29"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
