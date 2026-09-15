@@ -2,6 +2,16 @@
 
 # OMASPRITE
 
+> Development status: the reference image below is a design target, not a screenshot of the running editor. The current implementation is an early prototype. Several older panels contain demonstration controls only.
+
+## Working scene loop
+
+The World workspace now supports painting a 16×16 snow/path/water map, placing trees and buildings, editing terrain heights, placing an NPC and player spawn, changing daylight, and editing NPC dialogue. Save/Open stores validated JSON scenes. Paint operations have undo.
+
+Press PLAY, use arrow keys to move, then Enter next to the NPC to talk. Water, trees, buildings, NPCs, and elevation differences greater than one step block movement. The scene uses a tilted 2.5D projection with shaded sides and simple object shadows; it is not a full 3D renderer.
+
+Play a saved scene with `cargo run --locked -- --play scene.omasprite.json`. Recipients currently need Omasprite installed. Standalone game packaging, authored sprite import/animation, branching dialogue, real lighting, and the visual patch editor remain unfinished. This version cannot yet produce the visual quality of the reference RPG.
+
 ### Build games. Learn naturally. Pixel by pixel.
 
 [![CI](https://github.com/neshath/omasprite/actions/workflows/ci.yml/badge.svg)](https://github.com/neshath/omasprite/actions/workflows/ci.yml)

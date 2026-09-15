@@ -5,6 +5,7 @@ use crate::{
 use eframe::egui::{self, Align, Color32, Layout, Sense, Vec2};
 
 pub struct StudioApp {
+    world: crate::world::World,
     pub project: Project,
     pub workspace: Workspace,
     pub tool: Tool,
@@ -29,8 +30,9 @@ impl StudioApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::apply(&cc.egui_ctx);
         Self {
+            world: crate::world::World::default(),
             project: Project::default(),
-            workspace: Workspace::Sprite,
+            workspace: Workspace::World,
             tool: Tool::Pencil,
             frame: 23,
             onion_skin: true,
@@ -60,12 +62,15 @@ impl StudioApp {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui.button("□  PLAY").clicked() {
                     self.playing = !self.playing;
+                    self.world.start();
+                    self.workspace = Workspace::World;
                 }
                 if ui.button("▱  DIALOGUE").clicked() {
                     self.dialogue_open = !self.dialogue_open;
                 }
-                let _ = ui.button("⇩  EXPORT");
-                let _ = ui.button("⌘  SAVE");
+                if ui.button("SAVE SCENE").clicked() {
+                    self.world.save();
+                }
             });
         });
     }
@@ -98,6 +103,10 @@ impl StudioApp {
     }
 
     fn canvas(&mut self, ui: &mut egui::Ui) {
+        if self.workspace == Workspace::World {
+            self.world.show(ui, self.playing);
+            return;
+        }
         let available = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(available.x, available.y.max(410.0)),
@@ -486,22 +495,23 @@ impl eframe::App for StudioApp {
                     .inner_margin(8.0),
             )
             .show(ctx, |ui| self.workspace_tabs(ui));
-        egui::SidePanel::left("tools")
-            .resizable(false)
-            .exact_width(210.0)
-            .frame(egui::Frame::default().fill(theme::PANEL).inner_margin(12.0))
-            .show(ctx, |ui| ui::tools_panel(ui, self));
         egui::SidePanel::right("inspector")
             .resizable(true)
             .default_width(300.0)
             .frame(egui::Frame::default().fill(theme::PANEL).inner_margin(12.0))
-            .show(ctx, |ui| ui::inspector_panel(ui, self));
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui::tools_panel(ui, self);
+                    ui.collapsing("Extended workspace settings", |ui| {
+                        ui::inspector_panel(ui, self)
+                    });
+                });
+            });
         egui::CentralPanel::default()
             .frame(egui::Frame::default().fill(theme::BG).inner_margin(12.0))
             .show(ctx, |ui| {
+                egui::TopBottomPanel::bottom("transport").show_inside(ui, |ui| self.bottom(ui));
                 self.canvas(ui);
-                ui.separator();
-                self.bottom(ui);
             });
     }
 }
