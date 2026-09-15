@@ -52,8 +52,8 @@ impl StudioApp {
                 if ui.button("▱  DIALOGUE").clicked() {
                     self.dialogue_open = !self.dialogue_open;
                 }
-                ui.button("⇩  EXPORT");
-                ui.button("⌘  SAVE");
+                let _ = ui.button("⇩  EXPORT");
+                let _ = ui.button("⌘  SAVE");
             });
         });
     }
@@ -284,12 +284,7 @@ impl StudioApp {
             Color32::from_black_alpha(130),
         );
         painter.rect_filled(box_rect, 10.0, Color32::from_rgb(243, 239, 226));
-        painter.rect_stroke(
-            box_rect,
-            10.0,
-            (2.0, Color32::from_rgb(39, 31, 43)),
-            egui::StrokeKind::Outside,
-        );
+        painter.rect_stroke(box_rect, 10.0, (2.0, Color32::from_rgb(39, 31, 43)));
         painter.text(
             egui::pos2(box_rect.left() + 16.0, box_rect.top() + 12.0),
             egui::Align2::LEFT_TOP,
@@ -350,10 +345,14 @@ impl eframe::App for StudioApp {
             ctx.request_repaint_after(std::time::Duration::from_millis(90));
         }
         egui::TopBottomPanel::top("topbar")
-            .frame(egui::Frame::NONE.fill(theme::BG).inner_margin(10.0))
+            .frame(egui::Frame::default().fill(theme::BG).inner_margin(10.0))
             .show(ctx, |ui| self.topbar(ui));
         egui::TopBottomPanel::bottom("status")
-            .frame(egui::Frame::NONE.fill(theme::PANEL_DEEP).inner_margin(8.0))
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::PANEL_DEEP)
+                    .inner_margin(8.0),
+            )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("▣");
@@ -376,20 +375,24 @@ impl eframe::App for StudioApp {
                 });
             });
         egui::TopBottomPanel::top("tabs")
-            .frame(egui::Frame::NONE.fill(theme::PANEL_DEEP).inner_margin(8.0))
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::PANEL_DEEP)
+                    .inner_margin(8.0),
+            )
             .show(ctx, |ui| self.workspace_tabs(ui));
         egui::SidePanel::left("tools")
             .resizable(false)
             .exact_width(210.0)
-            .frame(egui::Frame::NONE.fill(theme::PANEL).inner_margin(12.0))
+            .frame(egui::Frame::default().fill(theme::PANEL).inner_margin(12.0))
             .show(ctx, |ui| ui::tools_panel(ui, self));
         egui::SidePanel::right("inspector")
             .resizable(true)
             .default_width(300.0)
-            .frame(egui::Frame::NONE.fill(theme::PANEL).inner_margin(12.0))
+            .frame(egui::Frame::default().fill(theme::PANEL).inner_margin(12.0))
             .show(ctx, |ui| ui::inspector_panel(ui, self));
         egui::CentralPanel::default()
-            .frame(egui::Frame::NONE.fill(theme::BG).inner_margin(12.0))
+            .frame(egui::Frame::default().fill(theme::BG).inner_margin(12.0))
             .show(ctx, |ui| {
                 self.canvas(ui);
                 ui.separator();

@@ -9,7 +9,6 @@ pub const HOT: Color32 = Color32::from_rgb(239, 68, 153);
 pub const VIOLET: Color32 = Color32::from_rgb(133, 77, 202);
 pub const LIME: Color32 = Color32::from_rgb(174, 231, 83);
 pub const SKY: Color32 = Color32::from_rgb(104, 196, 229);
-pub const LINE: Color32 = Color32::from_rgb(99, 78, 91);
 
 pub fn apply(ctx: &Context) {
     let mut visuals = Visuals::dark();
@@ -30,7 +29,9 @@ pub fn apply(ctx: &Context) {
     visuals.window_rounding = Rounding::same(8.0);
     visuals.menu_rounding = Rounding::same(6.0);
     visuals.window_shadow = egui::epaint::Shadow {
-        extrusion: 12.0,
+        offset: egui::vec2(0.0, 4.0),
+        blur: 12.0,
+        spread: 0.0,
         color: Color32::from_black_alpha(100),
     };
     let mut style = Style::default();
