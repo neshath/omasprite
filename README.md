@@ -10,7 +10,7 @@
 
 </div>
 
-![OMARCHY Studio beta preview](assets/omarchy-studio-preview.svg)
+![OMARCHY Studio reference preview](assets/omarchy-studio-reference.png)
 
 OMARCHY Studio is a native, open-source pixel game editor for Omarchy Linux. It is designed to grow with the creator: a child can start with a pencil and Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
 
