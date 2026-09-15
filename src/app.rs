@@ -54,7 +54,7 @@ impl StudioApp {
         ui.horizontal(|ui| {
             ui.add_space(4.0);
             ui.label(egui::RichText::new("▣").size(26.0).color(theme::LIME));
-            ui.label(egui::RichText::new("OMARCHY").size(18.0).strong());
+            ui.label(egui::RichText::new("OMASPRITE").size(18.0).strong());
             ui.separator();
             ui.label(egui::RichText::new(self.workspace.label()).color(theme::MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

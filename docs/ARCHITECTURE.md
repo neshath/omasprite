@@ -1,6 +1,6 @@
 # Architecture
 
-OMARCHY Studio is organized around a native editor shell with replaceable domain modules. The beta keeps the first slice in one binary so it is easy to build and review; the boundaries are explicit before the codebase grows.
+OMASPRITE is organized around a native editor shell with replaceable domain modules. The beta keeps the first slice in one binary so it is easy to build and review; the boundaries are explicit before the codebase grows.
 
 ```text
 src/main.rs
