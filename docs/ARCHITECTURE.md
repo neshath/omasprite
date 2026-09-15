@@ -17,6 +17,9 @@ src/main.rs
 - `engine/renderer`: wgpu scene renderer, pixel lighting, shadows, camera.
 - `engine/runtime`: play mode, input, ECS-facing scene data, deterministic preview.
 - `editor/logic`: serializable visual graph with a Lua export boundary.
+- `editor/character`: direction sets, animation clips, portraits, equipment layers, and palette variants.
+- `engine/lighting`: palette-aware point lights, shadow masks, ambient/day-night state, and effect emitters.
+- `editor/dialogue`: speaker/portrait lines, choices, conditions, and event hooks.
 - `editor/assets`: content-addressed local asset index and importers.
 - `plugins`: versioned capability manifest and sandboxed extension API.
 

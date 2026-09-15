@@ -15,6 +15,9 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         Tool::Select,
         Tool::Stamp,
         Tool::Light,
+        Tool::Shadow,
+        Tool::Path,
+        Tool::Particle,
     ] {
         let selected = app.tool == tool;
         if ui
@@ -111,6 +114,28 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
                 .small()
                 .color(theme::MUTED),
         );
+        ui.separator();
+    }
+    if app.workspace == Workspace::Character {
+        ui.label(egui::RichText::new("CHARACTER SETUP").size(16.0).strong());
+        ui.text_edit_singleline(&mut app.character_name);
+        for item in [
+            "Direction set: 8-way",
+            "Animation: idle / walk / talk",
+            "Palette: winter daylight",
+        ] {
+            ui.label(egui::RichText::new(item).small().color(theme::MUTED));
+        }
+        ui.separator();
+    }
+    if app.workspace == Workspace::Effects {
+        ui.label(egui::RichText::new("LIGHTING & FX").size(16.0).strong());
+        ui.checkbox(&mut app.lighting_enabled, "Pixel lighting");
+        ui.checkbox(&mut app.shadows_enabled, "Cast sprite shadows");
+        ui.add(egui::Slider::new(&mut app.ambient, 0.0..=1.0).text("Ambient"));
+        ui.add(egui::Slider::new(&mut app.light_radius, 0.1..=1.0).text("Light radius"));
+        ui.add(egui::Slider::new(&mut app.particle_amount, 0.0..=1.0).text("Particle density"));
+        ui.label(egui::RichText::new("Planned: palette-aware normal maps, weather presets, bloom, and GPU shader graphs.").small().color(theme::MUTED));
         ui.separator();
     }
     ui.label(egui::RichText::new("DIALOGUE BOX").size(16.0).strong());

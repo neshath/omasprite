@@ -11,6 +11,8 @@ This repository is the **Game Editor Beta** proposal: a focused, working editor 
 - Canvas preview with a crisp pixel-scene composition, frame controls, playback, onion-skin toggle, zoom, and tool cursor.
 - World Builder map preview with overworld, town, and interior map styles, chunk grid, terrain, houses, objects, and layer guidance.
 - Dialogue box authoring and preview with editable speaker and line fields, ready for portraits, choices, and event hooks.
+- Character Workshop foundation with direction/animation setup and a character preview canvas.
+- Lighting & FX foundation with pixel lights, ambient level, shadow toggle, radius, and particle density controls.
 - Beginner-friendly tool rail, layers, palette, project status, asset browser, and unlock path.
 - Creator level model with a clear progression from sprite painting to plugins.
 - Local-first project model ready to grow into a Git-friendly on-disk format.

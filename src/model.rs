@@ -5,6 +5,8 @@ pub enum Workspace {
     Sprite,
     World,
     Logic,
+    Character,
+    Effects,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +32,8 @@ impl Workspace {
             Self::Sprite => "SPRITE LAB",
             Self::World => "WORLD BUILDER",
             Self::Logic => "VISUAL LOGIC",
+            Self::Character => "CHARACTER WORKSHOP",
+            Self::Effects => "LIGHTING & FX",
         }
     }
 }
@@ -42,6 +46,9 @@ pub enum Tool {
     Select,
     Stamp,
     Light,
+    Shadow,
+    Path,
+    Particle,
 }
 
 impl Tool {
@@ -53,6 +60,9 @@ impl Tool {
             Self::Select => "□",
             Self::Stamp => "✦",
             Self::Light => "☼",
+            Self::Shadow => "◐",
+            Self::Path => "⌁",
+            Self::Particle => "✹",
         }
     }
 
@@ -64,6 +74,9 @@ impl Tool {
             Self::Select => "Select",
             Self::Stamp => "Stamp",
             Self::Light => "Pixel light",
+            Self::Shadow => "Shadow brush",
+            Self::Path => "Path / collision",
+            Self::Particle => "Particles",
         }
     }
 }

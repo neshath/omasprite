@@ -17,6 +17,12 @@ pub struct StudioApp {
     pub dialogue_open: bool,
     pub dialogue_speaker: String,
     pub dialogue_text: String,
+    pub lighting_enabled: bool,
+    pub shadows_enabled: bool,
+    pub ambient: f32,
+    pub light_radius: f32,
+    pub particle_amount: f32,
+    pub character_name: String,
 }
 
 impl StudioApp {
@@ -35,6 +41,12 @@ impl StudioApp {
             dialogue_open: true,
             dialogue_speaker: "Professor Rowan".into(),
             dialogue_text: "A new adventure starts with one small idea. What will you make?".into(),
+            lighting_enabled: true,
+            shadows_enabled: true,
+            ambient: 0.35,
+            light_radius: 0.65,
+            particle_amount: 0.25,
+            character_name: "Hero / winter outfit".into(),
         }
     }
 
@@ -64,6 +76,8 @@ impl StudioApp {
                 (Workspace::Sprite, "SPRITE"),
                 (Workspace::World, "WORLD"),
                 (Workspace::Logic, "LOGIC"),
+                (Workspace::Character, "CHARACTER"),
+                (Workspace::Effects, "FX"),
             ] {
                 let selected = self.workspace == w;
                 let fill = if selected {
@@ -94,6 +108,10 @@ impl StudioApp {
         let scene = rect.shrink(20.0);
         if self.workspace == Workspace::World {
             self.map_canvas(&painter, scene);
+        } else if self.workspace == Workspace::Character {
+            self.character_canvas(&painter, scene);
+        } else if self.workspace == Workspace::Effects {
+            self.effects_canvas(&painter, scene);
         } else {
             self.sprite_canvas(&painter, scene);
         }
@@ -305,6 +323,93 @@ impl StudioApp {
             "▼",
             egui::FontId::monospace(12.0),
             Color32::from_rgb(163, 36, 98),
+        );
+    }
+
+    fn character_canvas(&self, painter: &egui::Painter, scene: egui::Rect) {
+        painter.rect_filled(scene, 2.0, Color32::from_rgb(38, 29, 54));
+        let grid = scene.shrink(24.0);
+        for i in 0..16 {
+            let x = grid.left() + i as f32 * grid.width() / 16.0;
+            painter.line_segment(
+                [egui::pos2(x, grid.top()), egui::pos2(x, grid.bottom())],
+                (1.0, Color32::from_rgb(66, 52, 87)),
+            );
+        }
+        for i in 0..12 {
+            let y = grid.top() + i as f32 * grid.height() / 12.0;
+            painter.line_segment(
+                [egui::pos2(grid.left(), y), egui::pos2(grid.right(), y)],
+                (1.0, Color32::from_rgb(66, 52, 87)),
+            );
+        }
+        let cx = grid.center().x;
+        let cy = grid.center().y + 40.0;
+        painter.circle_filled(
+            egui::pos2(cx, cy - 100.0),
+            32.0,
+            Color32::from_rgb(198, 221, 245),
+        );
+        painter.rect_filled(
+            egui::Rect::from_center_size(egui::pos2(cx, cy - 38.0), egui::vec2(72.0, 105.0)),
+            12.0,
+            Color32::from_rgb(65, 129, 184),
+        );
+        painter.rect_filled(
+            egui::Rect::from_center_size(egui::pos2(cx - 20.0, cy + 40.0), egui::vec2(18.0, 70.0)),
+            5.0,
+            Color32::from_rgb(44, 49, 69),
+        );
+        painter.rect_filled(
+            egui::Rect::from_center_size(egui::pos2(cx + 20.0, cy + 40.0), egui::vec2(18.0, 70.0)),
+            5.0,
+            Color32::from_rgb(44, 49, 69),
+        );
+        painter.text(
+            egui::pos2(grid.left() + 14.0, grid.top() + 12.0),
+            egui::Align2::LEFT_TOP,
+            "CHARACTER / 8 DIRECTIONS / 4 WALK FRAMES",
+            egui::FontId::monospace(12.0),
+            theme::MUTED,
+        );
+        painter.text(
+            egui::pos2(grid.right() - 14.0, grid.top() + 12.0),
+            egui::Align2::RIGHT_TOP,
+            "IDLE · WALK · RUN · TALK",
+            egui::FontId::monospace(12.0),
+            theme::LIME,
+        );
+    }
+
+    fn effects_canvas(&self, painter: &egui::Painter, scene: egui::Rect) {
+        painter.rect_filled(scene, 2.0, Color32::from_rgb(12, 18, 35));
+        let center = scene.center();
+        for ring in [0.18, 0.32, 0.48] {
+            painter.circle_stroke(
+                center,
+                scene.width() * ring,
+                (2.0, Color32::from_rgba_unmultiplied(236, 104, 190, 80)),
+            );
+        }
+        painter.circle_filled(center, 14.0, Color32::from_rgb(255, 190, 83));
+        if self.lighting_enabled {
+            painter.circle_filled(
+                center,
+                scene.width() * self.light_radius * 0.30,
+                Color32::from_rgba_unmultiplied(255, 173, 84, 34),
+            );
+        }
+        for i in 0..18 {
+            let x = scene.left() + 20.0 + (i as f32 * 73.0) % scene.width();
+            let y = scene.top() + 30.0 + ((i * 47) as f32 % scene.height());
+            painter.circle_filled(egui::pos2(x, y), 2.0 + (i % 3) as f32, theme::SKY);
+        }
+        painter.text(
+            egui::pos2(scene.left() + 14.0, scene.top() + 12.0),
+            egui::Align2::LEFT_TOP,
+            "LIGHTING LAB / PIXEL LIGHTS / SHADOWS / PARTICLES",
+            egui::FontId::monospace(12.0),
+            theme::MUTED,
         );
     }
 
