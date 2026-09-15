@@ -4,7 +4,7 @@
 
 ### Build games. Learn naturally. Pixel by pixel.
 
-[![CI](https://github.com/neshath/omarchy-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/neshath/omarchy-studio/actions/workflows/ci.yml)
+[![CI](https://github.com/neshath/omasprite/actions/workflows/ci.yml/badge.svg)](https://github.com/neshath/omasprite/actions/workflows/ci.yml)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
@@ -36,8 +36,8 @@ OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fanta
 Requires a recent stable Rust toolchain and the Linux graphics/windowing development libraries used by `wgpu`/`winit`.
 
 ```sh
-git clone https://github.com/neshath/omarchy-studio.git
-cd omarchy-studio
+git clone https://github.com/neshath/omasprite.git
+cd omasprite
 cargo run --locked
 ```
 
