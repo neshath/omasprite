@@ -6,11 +6,11 @@ product
 
 ## Users
 
-OMARCY Studio serves three audiences in one progressive workspace: children and first-time creators, hobbyist pixel artists, and advanced indie developers. A creator should be able to open the app, paint a small scene, press Play, and understand the next useful capability without studying a manual first.
+OMARCHY Studio serves three audiences in one progressive workspace: children and first-time creators, hobbyist pixel artists, and advanced indie developers. A creator should be able to open the app, paint a small scene, press Play, and understand the next useful capability without studying a manual first.
 
 ## Product Purpose
 
-OMARCY Studio is an open-source native Linux game editor for building sprite-based 2D and 2.5D games. The Game Editor Beta proves the core creation loop: create a project, paint/edit sprites, arrange a tilemap, preview animation, inspect assets, and play a small scene. Its defining feature is an adaptive creator level that reveals complexity progressively instead of hiding power behind a permanently dense interface.
+OMARCHY Studio is an open-source native Linux game editor for building sprite-based 2D and 2.5D games. The Game Editor Beta proves the core creation loop: create a project, paint/edit sprites, arrange a tilemap, preview animation, inspect assets, and play a small scene. Its defining feature is an adaptive creator level that reveals complexity progressively instead of hiding power behind a permanently dense interface.
 
 ## Brand Personality
 

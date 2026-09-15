@@ -1,6 +1,6 @@
 <div align="center">
 
-# OMARCY Studio
+# OMARCHY Studio
 
 ### Build games. Learn naturally. Pixel by pixel.
 
@@ -10,13 +10,13 @@
 
 </div>
 
-![OMARCY Studio beta preview](assets/omarchy-studio-preview.svg)
+![OMARCHY Studio beta preview](assets/omarchy-studio-preview.svg)
 
-OMARCY Studio is a native, open-source pixel game editor for Omarchy Linux. It is designed to grow with the creator: a child can start with a pencil and Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
+OMARCHY Studio is a native, open-source pixel game editor for Omarchy Linux. It is designed to grow with the creator: a child can start with a pencil and Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
 
 This repository is the **Game Editor Beta** proposal: a focused, working editor shell that proves the adaptive workspace and the first creation loop. It is intentionally honest about what is implemented and what is staged next.
 
-OMARCY Studio is inspired by beginner-friendly game makers, pixel-art editors, fantasy-console immediacy, and handheld RPG map/dialogue workflows. It does not ship third-party game assets or present a mockup as a finished runtime.
+OMARCHY Studio is inspired by beginner-friendly game makers, pixel-art editors, fantasy-console immediacy, and handheld RPG map/dialogue workflows. It does not ship third-party game assets or present a mockup as a finished runtime.
 
 ## Current beta slice
 

@@ -6,46 +6,34 @@ use crate::{
 use eframe::egui::{self, Align, Color32, Layout};
 
 pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
-    ui.label(egui::RichText::new("TOOLS").size(16.0).strong());
+    ui.label(egui::RichText::new("TOOLS & GFX").size(16.0).strong());
     ui.add_space(6.0);
-    for tool in [
-        Tool::Pencil,
-        Tool::Fill,
-        Tool::Eraser,
-        Tool::Select,
-        Tool::Stamp,
-        Tool::Light,
-        Tool::Shadow,
-        Tool::Path,
-        Tool::Particle,
+    for row in [
+        [Tool::Pencil, Tool::Fill, Tool::Eraser],
+        [Tool::Select, Tool::Stamp, Tool::Light],
+        [Tool::Shadow, Tool::Path, Tool::Particle],
     ] {
-        let selected = app.tool == tool;
-        if ui
-            .add(
-                egui::Button::new(format!("{}  {}", tool.icon(), tool.label())).fill(if selected {
-                    theme::HOT
-                } else {
-                    Color32::TRANSPARENT
-                }),
-            )
-            .clicked()
-        {
-            app.tool = tool;
-        }
-    }
-    ui.separator();
-    ui.label(egui::RichText::new("LAYERS").size(16.0).strong());
-    for (i, layer) in ["BG", "COLLISION", "MAIN CHAR", "SIDE CHAR"]
-        .iter()
-        .enumerate()
-    {
-        let selected = app.selected_layer == i;
-        if ui
-            .selectable_label(selected, format!("◉  {}", layer))
-            .clicked()
-        {
-            app.selected_layer = i;
-        }
+        ui.horizontal(|ui| {
+            for tool in row {
+                let selected = app.tool == tool;
+                if ui
+                    .add_sized(
+                        [54.0, 42.0],
+                        egui::Button::new(egui::RichText::new(tool.icon()).size(22.0)).fill(
+                            if selected {
+                                theme::HOT
+                            } else {
+                                Color32::TRANSPARENT
+                            },
+                        ),
+                    )
+                    .on_hover_text(tool.label())
+                    .clicked()
+                {
+                    app.tool = tool;
+                }
+            }
+        });
     }
     ui.separator();
     ui.label(egui::RichText::new("PALETTE").size(16.0).strong());
@@ -69,6 +57,40 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
                 egui::Button::new("  ")
                     .fill(c)
                     .min_size(egui::vec2(27.0, 24.0)),
+            );
+        }
+    });
+    ui.separator();
+    ui.label(
+        egui::RichText::new("LAYERS / MAP STACK")
+            .size(16.0)
+            .strong(),
+    );
+    for (i, layer) in ["BG", "COLLISION", "MAIN CHAR", "SIDE CHAR"]
+        .iter()
+        .enumerate()
+    {
+        let selected = app.selected_layer == i;
+        if ui
+            .selectable_label(selected, format!("◉  {}", layer))
+            .clicked()
+        {
+            app.selected_layer = i;
+        }
+    }
+    ui.separator();
+    ui.label(egui::RichText::new("GFX / TILE SHELF").size(16.0).strong());
+    ui.horizontal_wrapped(|ui| {
+        for (label, color) in [
+            ("HERO", theme::HOT),
+            ("TREE", theme::LIME),
+            ("TILE", theme::SKY),
+            ("FX", theme::VIOLET),
+        ] {
+            ui.add(
+                egui::Button::new(egui::RichText::new(label).size(11.0))
+                    .fill(color)
+                    .min_size(egui::vec2(60.0, 38.0)),
             );
         }
     });
@@ -191,5 +213,5 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     }
     ui.separator();
     ui.label(egui::RichText::new("QUICK TIP").size(16.0).strong());
-    ui.label("Paint a sprite, then press PLAY. OMARCY reveals the next tool when your game is ready for it.");
+    ui.label("Paint a sprite, then press PLAY. OMARCHY reveals the next tool when your game is ready for it.");
 }
