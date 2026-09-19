@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
     #[serde(default)]
+    pub character: crate::advanced::CharacterSet,
+    #[serde(default)]
     pub sprite: crate::sprite::Sprite,
     #[serde(default)]
     pub portals: Vec<crate::runtime::Portal>,
@@ -40,6 +42,7 @@ fn default_light_radius() -> f32 {
 impl Default for Scene {
     fn default() -> Self {
         Self {
+            character: crate::advanced::CharacterSet::default(),
             sprite: crate::sprite::Sprite::default(),
             portals: vec![],
             objective: None,
@@ -111,6 +114,8 @@ pub struct World {
     dialogue_choice: usize,
     history: Vec<Scene>,
     camera: crate::tilemap::Camera,
+    particles: crate::particles::System,
+    weather: crate::advanced::ParticleEmitter,
 }
 impl Default for World {
     fn default() -> Self {
@@ -142,6 +147,14 @@ impl Default for World {
             dialogue_choice: 0,
             history: vec![],
             camera: crate::tilemap::Camera::new([16.0, 12.0]),
+            particles: crate::particles::System::default(),
+            weather: crate::advanced::ParticleEmitter {
+                name: "snow".into(),
+                rate: 8.0,
+                lifetime: 8.0,
+                color: [235, 243, 248, 180],
+                wind: [0.15, 0.0],
+            },
         }
     }
 }
@@ -463,8 +476,13 @@ impl World {
             }
             if let Some(runtime) = &mut self.runtime {
                 self.player = runtime.state.position;
-                self.camera
-                    .follow([self.player[0] as f32, self.player[1] as f32], [16, 16]);
+                self.camera.smooth_follow(
+                    [self.player[0] as f32, self.player[1] as f32],
+                    [16, 16],
+                    10.0,
+                    1.0 / 60.0,
+                );
+                self.particles.update(&self.weather, 1.0 / 60.0);
                 self.talking = runtime.page.is_some();
                 ui.label(format!(
                     "Map: {}   Player: {:?}   Objective: {}",
@@ -682,8 +700,13 @@ impl World {
                                 .any(|f| f.iter().any(|c| c[3] > 0))
                         {
                             let frame = if playing {
-                                (ui.input(|i| i.time) * 1000.0 / scene.sprite.frame_ms as f64)
-                                    as usize
+                                let tick = (ui.input(|i| i.time) * 1000.0
+                                    / scene.sprite.frame_ms as f64)
+                                    as usize;
+                                self.runtime
+                                    .as_ref()
+                                    .and_then(|r| scene.character.frame(r.direction, true, tick))
+                                    .unwrap_or(tick)
                             } else {
                                 0
                             };
@@ -718,6 +741,27 @@ impl World {
                             Color32::from_rgb(241, 209, 174),
                         );
                     }
+                }
+            }
+        }
+        if playing {
+            for particle in &self.particles.particles {
+                let pos = origin
+                    + egui::vec2(
+                        particle.position[0] * unit,
+                        particle.position[1] * unit * 0.55,
+                    );
+                if rect.contains(pos) {
+                    p.circle_filled(
+                        pos,
+                        1.5,
+                        Color32::from_rgba_unmultiplied(
+                            self.weather.color[0],
+                            self.weather.color[1],
+                            self.weather.color[2],
+                            self.weather.color[3],
+                        ),
+                    );
                 }
             }
         }

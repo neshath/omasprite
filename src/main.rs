@@ -1,6 +1,7 @@
 mod advanced;
 mod app;
 mod model;
+mod particles;
 mod plugins;
 mod project;
 mod runtime;

@@ -24,6 +24,22 @@ impl Camera {
         self.center[0] = target[0].clamp(half[0], map[0] as f32 - half[0]);
         self.center[1] = target[1].clamp(half[1], map[1] as f32 - half[1]);
     }
+    pub fn smooth_follow(
+        &mut self,
+        target: [f32; 2],
+        map: [usize; 2],
+        responsiveness: f32,
+        dt: f32,
+    ) {
+        let previous = self.center;
+        self.follow(target, map);
+        let desired = self.center;
+        let blend = (1.0 - (-responsiveness.max(0.0) * dt.max(0.0)).exp()).clamp(0.0, 1.0);
+        self.center = [
+            previous[0] + (desired[0] - previous[0]) * blend,
+            previous[1] + (desired[1] - previous[1]) * blend,
+        ];
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -86,5 +102,12 @@ mod tests {
         assert_eq!(camera.center, [13.0, 14.0]);
         camera.follow([0.0, 0.0], [16, 16]);
         assert_eq!(camera.center, [3.0, 2.0]);
+    }
+    #[test]
+    fn smooth_camera_converges_without_overshoot() {
+        let mut c = Camera::new([6.0, 4.0]);
+        c.center = [3.0, 2.0];
+        c.smooth_follow([15.0, 15.0], [16, 16], 8.0, 0.1);
+        assert!(c.center[0] > 3.0 && c.center[0] < 13.0);
     }
 }
