@@ -22,6 +22,7 @@ pub struct Runtime {
     pub page: Option<usize>,
     pub direction: [i32; 2],
     pub log: Vec<String>,
+    pub dialogue_node: Option<usize>,
 }
 impl Runtime {
     fn npc_at(scene: &Scene, position: [usize; 2]) -> bool {
@@ -54,6 +55,7 @@ impl Runtime {
             page: None,
             direction: [0, 1],
             log: vec!["Game started".into()],
+            dialogue_node: None,
         })
     }
     pub fn scene(&self) -> &Scene {
@@ -94,6 +96,10 @@ impl Runtime {
         true
     }
     pub fn interact(&mut self) {
+        if self.dialogue_node.is_some() {
+            self.dialogue_node = None;
+            return;
+        }
         if let Some(page) = self.page {
             self.page = if page + 1 < self.scene().dialogue.split('|').count() {
                 Some(page + 1)
@@ -110,10 +116,52 @@ impl Runtime {
             .chain(std::iter::once(&self.scene().npc))
             .any(|n| p[0].abs_diff(n[0]) + p[1].abs_diff(n[1]) == 1)
         {
-            self.page = Some(0);
+            if self.scene().dialogue_nodes.is_empty() {
+                self.page = Some(0);
+            } else {
+                self.dialogue_node = Some(0);
+                let hooks = self.scene().dialogue_nodes[0].hooks.clone();
+                for hook in hooks {
+                    self.log.push(format!("Hook: {hook}"));
+                }
+            }
         }
     }
+    pub fn choose(&mut self, choice: usize) -> bool {
+        let Some(node_index) = self.dialogue_node else {
+            return false;
+        };
+        let Some(node) = self.scene().dialogue_nodes.get(node_index) else {
+            return false;
+        };
+        let Some(choice) = node.choices.get(choice) else {
+            return false;
+        };
+        let allowed = match choice.condition.as_deref() {
+            None => true,
+            Some("completed") => self.state.completed,
+            Some("!completed") => !self.state.completed,
+            _ => false,
+        };
+        if !allowed {
+            return false;
+        }
+        let next = choice.next;
+        let hooks = self.scene().dialogue_nodes[next].hooks.clone();
+        self.dialogue_node = Some(next);
+        for hook in hooks {
+            self.log.push(format!("Hook: {hook}"));
+        }
+        true
+    }
     pub fn line(&self) -> Option<&str> {
+        if let Some(index) = self.dialogue_node {
+            return self
+                .scene()
+                .dialogue_nodes
+                .get(index)
+                .map(|n| n.text.as_str());
+        }
         self.page
             .and_then(|i| self.scene().dialogue.split('|').nth(i))
     }
@@ -130,6 +178,7 @@ impl Runtime {
         }
         self.state = save;
         self.page = None;
+        self.dialogue_node = None;
         Ok(())
     }
 }
@@ -262,5 +311,35 @@ mod tests {
         assert!(!runtime.step(1, 0));
         runtime.interact();
         assert!(runtime.line().is_some());
+    }
+    #[test]
+    fn dialogue_choice_conditions_and_hooks_execute() {
+        let mut scene = Scene::default();
+        scene.dialogue_nodes = vec![
+            crate::advanced::DialogueNode {
+                speaker: "Mira".into(),
+                text: "Choose.".into(),
+                choices: vec![crate::advanced::Choice {
+                    label: "Go".into(),
+                    next: 1,
+                    condition: Some("!completed".into()),
+                }],
+                hooks: vec!["open".into()],
+            },
+            crate::advanced::DialogueNode {
+                speaker: "Mira".into(),
+                text: "Done.".into(),
+                choices: vec![],
+                hooks: vec!["finish".into()],
+            },
+        ];
+        let mut runtime = Runtime::new(BTreeMap::from([("main".into(), scene)]), "main").unwrap();
+        assert!(runtime.step(0, -1));
+        runtime.interact();
+        assert_eq!(runtime.line(), Some("Choose."));
+        assert!(runtime.choose(0));
+        assert_eq!(runtime.line(), Some("Done."));
+        assert!(runtime.log.iter().any(|line| line == "Hook: open"));
+        assert!(runtime.log.iter().any(|line| line == "Hook: finish"));
     }
 }
