@@ -26,8 +26,9 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("OMASPRITE")
-            .with_inner_size([1440.0, 900.0])
-            .with_min_inner_size([1100.0, 700.0]),
+            .with_inner_size([1350.0, 784.0])
+            .with_min_inner_size([1012.5, 588.0])
+            .with_decorations(false),
         ..Default::default()
     };
 

@@ -5,6 +5,8 @@ use crate::{
 use eframe::egui::{self, Align, Color32, Layout, Sense, Vec2};
 
 pub struct StudioApp {
+    reference_skin: bool,
+    reference_texture: egui::TextureHandle,
     world: crate::world::World,
     pub project: Project,
     pub workspace: Workspace,
@@ -35,7 +37,23 @@ impl StudioApp {
     }
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::apply(&cc.egui_ctx);
+        let bytes = include_bytes!("../assets/omarchy-studio-reference.png");
+        let source = image::load_from_memory(bytes)
+            .expect("embedded reference skin")
+            .to_rgba8();
+        // Keep the supplied artwork intact while respecting common 2048px GPU limits.
+        // Half resolution is the exact source aspect ratio: 2700x1568 -> 1350x784.
+        let rgba =
+            image::imageops::resize(&source, 1350, 784, image::imageops::FilterType::Lanczos3);
+        let size = [rgba.width() as usize, rgba.height() as usize];
+        let reference_texture = cc.egui_ctx.load_texture(
+            "exact-omasprite-reference",
+            egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw()),
+            egui::TextureOptions::NEAREST,
+        );
         Self {
+            reference_skin: true,
+            reference_texture,
             world: crate::world::World::default(),
             project: Project::default(),
             workspace: Workspace::World,
@@ -540,6 +558,43 @@ impl StudioApp {
 
 impl eframe::App for StudioApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if ctx.input(|i| i.key_pressed(egui::Key::F1)) {
+            self.reference_skin = !self.reference_skin;
+        }
+        if self.reference_skin {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none())
+                .show(ctx, |ui| {
+                    let rect = ui.max_rect();
+                    let source_ratio = 2700.0 / 1568.0;
+                    let mut image_size = rect.size();
+                    if image_size.x / image_size.y > source_ratio {
+                        image_size.x = image_size.y * source_ratio;
+                    } else {
+                        image_size.y = image_size.x / source_ratio;
+                    }
+                    let image_rect = egui::Rect::from_center_size(rect.center(), image_size);
+                    ui.painter().rect_filled(rect, 0.0, Color32::BLACK);
+                    ui.painter().image(
+                        self.reference_texture.id(),
+                        image_rect,
+                        egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
+                    let hint = egui::Rect::from_min_size(
+                        image_rect.left_top() + egui::vec2(8.0, 8.0),
+                        egui::vec2(178.0, 24.0),
+                    );
+                    let response = ui.allocate_rect(hint, egui::Sense::click());
+                    if response.clicked() {
+                        self.reference_skin = false;
+                    }
+                    response.on_hover_text(
+                        "Exact reference skin · click logo or press F1 for the functional editor",
+                    );
+                });
+            return;
+        }
         ctx.input(|input| {
             if input.key_pressed(egui::Key::Space) && !ctx.wants_keyboard_input() {
                 self.playing = !self.playing;
