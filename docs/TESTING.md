@@ -18,4 +18,4 @@ Live check on macOS: application launched with accessible controls and a visible
 
 ## Remaining acceptance
 
-Sprite create/import, animated character, camera follow, multiple NPCs, dialogue advance/branching, scene transitions, objective completion, game progress save/load and original three-map RPG still need implementation and end-to-end tests.
+The current automated acceptance covers sprite editing primitives, animated frames, authored collision, dialogue advance, scene transitions, objective completion, progress restore, and the original three-map RPG route. Native mouse/keyboard automation for New → paint → Save → close → Open remains environment-dependent and was not counted as passed. Camera follow, multiple NPC entities, branching dialogue, arbitrary image import, and standalone export remain roadmap work.

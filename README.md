@@ -10,7 +10,7 @@ The World workspace now supports painting a 16×16 snow/path/water map, placing 
 
 Press PLAY, use arrow keys to move, then Enter next to the NPC to talk. Water, trees, buildings, NPCs, and elevation differences greater than one step block movement. The scene uses a tilted 2.5D projection with shaded sides and simple object shadows; it is not a full 3D renderer.
 
-Play a saved scene with `cargo run --locked -- --play scene.omasprite.json`. Recipients currently need Omasprite installed. Standalone game packaging, authored sprite import/animation, branching dialogue, real lighting, and the visual patch editor remain unfinished. This version cannot yet produce the visual quality of the reference RPG.
+Play the included original fixture with `cargo run --locked -- --play examples/snow-courier`, or open it in the editor with `cargo run --locked -- --project examples/snow-courier`. The current beta supports authored 16×16 maps, portals, collision painting, multi-page dialogue, objectives, progress saves, and a 16×24 multi-frame sprite editor. Standalone game packaging, arbitrary image import, branching dialogue, GPU lighting, and a full visual patch editor remain roadmap items. The reference image remains a style target, not a claim of matching artwork.
 
 ### Build games. Learn naturally. Pixel by pixel.
 
@@ -30,7 +30,7 @@ OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fanta
 
 ## Current beta slice
 
-- Native Rust desktop window powered by `eframe`/`egui` with the `wgpu` renderer.
+- Native Rust desktop window powered by `eframe`/`egui` using eframe's platform OpenGL backend.
 - Sprite Lab / World Builder / Visual Logic workspace switching.
 - Canvas preview with a crisp pixel-scene composition, frame controls, playback, onion-skin toggle, zoom, and tool cursor.
 - World Builder map preview with overworld, town, and interior map styles, chunk grid, terrain, houses, objects, and layer guidance.
@@ -39,7 +39,7 @@ OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fanta
 - Lighting & FX foundation with pixel lights, ambient level, shadow toggle, radius, and particle density controls.
 - Beginner-friendly tool rail, layers, palette, project status, asset browser, and unlock path.
 - Creator level model with a clear progression from sprite painting to plugins.
-- Local-first project model ready to grow into a Git-friendly on-disk format.
+- Local-first versioned project folders with scene revisions, migration checks, and game progress saves.
 
 ## Install on Omarchy / Linux
 
