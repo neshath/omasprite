@@ -49,6 +49,7 @@ impl ProjectStore {
             "dialogues",
             "audio",
             "scripts",
+            "plugins",
             "saves",
         ] {
             fs::create_dir(root.join(dir)).map_err(|e| e.to_string())?;
