@@ -249,4 +249,18 @@ mod tests {
         scene.light_radius = 0.0;
         assert!(scene.validate().is_err());
     }
+
+    #[test]
+    fn multiple_npcs_are_blocking_and_interactable() {
+        let mut scene = Scene::default();
+        scene.npcs = vec![[8, 7], [10, 9]];
+        scene.npc = [8, 7];
+        let mut runtime = Runtime::new(BTreeMap::from([("main".into(), scene)]), "main").unwrap();
+        assert!(runtime.step(0, -1));
+        assert!(runtime.step(1, 0));
+        assert!(runtime.step(0, 1));
+        assert!(!runtime.step(1, 0));
+        runtime.interact();
+        assert!(runtime.line().is_some());
+    }
 }
