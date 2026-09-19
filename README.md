@@ -28,6 +28,8 @@ OMASPRITE is the native, open-source pixel game editor for Omarchy Linux. It is 
 
 This repository is the **Game Editor Beta** proposal: a focused, working editor shell that proves the adaptive workspace and the first creation loop. It is intentionally honest about what is implemented and what is staged next.
 
+The default World workspace opens an original Snow Village starter scene: snow terrain, a walkable path, a multi-tile snow-roof building, trees, fences, lamps, flowers, a snowman, an NPC, dialogue, collision, weather particles, and a playable spawn point. Use the World brushes to author those pieces, then press **PLAY** to test the scene.
+
 OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fantasy-console immediacy, and handheld RPG map/dialogue workflows. It does not ship third-party game assets or present a mockup as a finished runtime.
 
 ## Current beta slice

@@ -24,11 +24,33 @@ pub struct Scene {
     pub npc: [usize; 2],
     #[serde(default)]
     pub npcs: Vec<[usize; 2]>,
+    #[serde(default)]
+    pub decorations: Vec<Decoration>,
     pub spawn: [usize; 2],
     pub dialogue: String,
     #[serde(default)]
     pub dialogue_nodes: Vec<crate::advanced::DialogueNode>,
     pub ambient: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Decoration {
+    pub position: [usize; 2],
+    pub kind: DecorationKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum DecorationKind {
+    Fence,
+    Lamp,
+    Flower,
+    Snowman,
+}
+
+impl DecorationKind {
+    pub fn blocks(self) -> bool {
+        matches!(self, Self::Fence | Self::Snowman)
+    }
 }
 fn default_collision() -> Vec<bool> {
     vec![false; 256]
@@ -41,6 +63,33 @@ fn default_light_radius() -> f32 {
 }
 impl Default for Scene {
     fn default() -> Self {
+        let mut tiles = vec![0; 256];
+        for y in 0..16 {
+            for x in 0..16 {
+                if y == 10 || y == 11 || (x == 8 && y >= 6) {
+                    tiles[y * 16 + x] = 1;
+                }
+            }
+        }
+        for &(x, y) in &[
+            (1, 1),
+            (3, 1),
+            (12, 1),
+            (14, 1),
+            (1, 5),
+            (14, 5),
+            (2, 13),
+            (5, 14),
+            (12, 13),
+            (14, 14),
+        ] {
+            tiles[y * 16 + x] = 3;
+        }
+        for y in 3..=5 {
+            for x in 5..=10 {
+                tiles[y * 16 + x] = 4;
+            }
+        }
         Self {
             character: crate::advanced::CharacterSet::default(),
             sprite: crate::sprite::Sprite::default(),
@@ -49,11 +98,57 @@ impl Default for Scene {
             light: default_light(),
             light_radius: default_light_radius(),
             version: 1,
-            tiles: vec![0; 256],
+            tiles,
             collision: default_collision(),
             heights: vec![0; 256],
             npc: [8, 7],
             npcs: vec![[8, 7]],
+            decorations: vec![
+                Decoration {
+                    position: [5, 6],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [6, 6],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [10, 6],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [11, 6],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [4, 10],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [13, 10],
+                    kind: DecorationKind::Fence,
+                },
+                Decoration {
+                    position: [3, 10],
+                    kind: DecorationKind::Lamp,
+                },
+                Decoration {
+                    position: [12, 10],
+                    kind: DecorationKind::Lamp,
+                },
+                Decoration {
+                    position: [2, 9],
+                    kind: DecorationKind::Flower,
+                },
+                Decoration {
+                    position: [14, 9],
+                    kind: DecorationKind::Flower,
+                },
+                Decoration {
+                    position: [2, 11],
+                    kind: DecorationKind::Snowman,
+                },
+            ],
             spawn: [8, 9],
             dialogue: "Welcome! Build your village and tell its story.".into(),
             dialogue_nodes: vec![],
@@ -80,6 +175,10 @@ impl Scene {
             || self.heights.iter().any(|v| *v > 4)
             || self.npc.iter().chain(self.spawn.iter()).any(|v| *v >= 16)
             || self.npcs.iter().any(|n| n.iter().any(|v| *v >= 16))
+            || self
+                .decorations
+                .iter()
+                .any(|d| d.position.iter().any(|v| *v >= 16))
             || !self.ambient.is_finite()
             || crate::advanced::validate_dialogue(&self.dialogue_nodes).is_err()
             || !(0.2..=1.0).contains(&self.ambient)
@@ -89,7 +188,14 @@ impl Scene {
         Ok(())
     }
     pub fn walkable(&self, x: usize, y: usize) -> bool {
-        x < 16 && y < 16 && self.tiles[y * 16 + x] < 2 && !self.collision[y * 16 + x]
+        x < 16
+            && y < 16
+            && self.tiles[y * 16 + x] < 2
+            && !self.collision[y * 16 + x]
+            && !self
+                .decorations
+                .iter()
+                .any(|d| d.position == [x, y] && d.kind.blocks())
     }
 }
 pub struct World {
@@ -141,7 +247,7 @@ impl Default for World {
             discard_confirmed: false,
             scene: Scene::default(),
             path: "scene.omasprite.json".into(),
-            status: "New unsaved scene".into(),
+            status: "Snow Village starter scene · unsaved".into(),
             brush: 0,
             elevation: 0,
             player: [8, 9],
@@ -415,6 +521,10 @@ impl World {
                     "Collision",
                     "Light",
                     "Stamp",
+                    "Fence",
+                    "Lamp",
+                    "Flower",
+                    "Snowman",
                 ]
                 .iter()
                 .enumerate()
@@ -598,6 +708,18 @@ impl World {
                                 self.status = e;
                             }
                         }
+                        13..=16 => {
+                            let kind = match self.brush {
+                                13 => crate::world::DecorationKind::Fence,
+                                14 => crate::world::DecorationKind::Lamp,
+                                15 => crate::world::DecorationKind::Flower,
+                                _ => crate::world::DecorationKind::Snowman,
+                            };
+                            self.scene.decorations.retain(|d| d.position != xy);
+                            self.scene
+                                .decorations
+                                .push(crate::world::Decoration { position: xy, kind });
+                        }
                         _ => {
                             self.scene.tiles[idx] = self.brush;
                             self.scene.heights[idx] = self.elevation;
@@ -670,30 +792,122 @@ impl World {
                         );
                     }
                 }
-                if tile >= 3 {
+                if tile == 3 {
                     p.rect_filled(
-                        top.translate(egui::vec2(unit * 0.2, unit * 0.12)),
-                        2.0,
-                        Color32::from_black_alpha(65),
+                        Rect::from_center_size(
+                            top.center() + egui::vec2(0.0, unit * 0.18),
+                            egui::vec2(unit * 0.18, unit * 0.48),
+                        ),
+                        1.0,
+                        Color32::from_rgb(119, 78, 55),
                     );
-                    let object = Rect::from_min_size(
-                        pos - egui::vec2(0.0, unit * 0.7),
-                        egui::vec2(unit, unit),
+                    p.circle_filled(
+                        top.center() - egui::vec2(0.0, unit * 0.18),
+                        unit * 0.38,
+                        Color32::from_rgb(44, 111, 77),
+                    );
+                    p.circle_filled(
+                        top.center() - egui::vec2(unit * 0.12, unit * 0.32),
+                        unit * 0.28,
+                        Color32::from_rgb(77, 150, 96),
+                    );
+                    p.circle_filled(
+                        top.center() - egui::vec2(unit * 0.08, unit * 0.47),
+                        unit * 0.14,
+                        Color32::from_rgb(235, 244, 247),
+                    );
+                } else if tile == 4 {
+                    let building = Rect::from_min_size(
+                        pos - egui::vec2(0.0, unit * 0.55),
+                        egui::vec2(unit, unit * 0.90),
+                    );
+                    p.rect_filled(building, 1.0, Color32::from_rgb(185, 132, 100));
+                    p.rect_filled(
+                        Rect::from_min_size(
+                            egui::pos2(building.left() - unit * 0.08, building.top()),
+                            egui::vec2(unit * 1.16, unit * 0.22),
+                        ),
+                        1.0,
+                        Color32::from_rgb(236, 243, 245),
                     );
                     p.rect_filled(
-                        object,
+                        Rect::from_min_size(
+                            egui::pos2(
+                                building.center().x - unit * 0.14,
+                                building.bottom() - unit * 0.34,
+                            ),
+                            egui::vec2(unit * 0.28, unit * 0.34),
+                        ),
                         0.0,
-                        if tile == 3 {
-                            Color32::from_rgb(44, 94, 76)
-                        } else {
-                            Color32::from_rgb(151, 132, 119)
-                        },
+                        Color32::from_rgb(75, 91, 117),
                     );
-                    p.rect_filled(
-                        Rect::from_min_size(object.min, egui::vec2(unit, unit * 0.25)),
-                        0.0,
-                        Color32::from_rgb(237, 244, 248),
-                    );
+                }
+                if let Some(decoration) = scene.decorations.iter().find(|d| d.position == [x, y]) {
+                    match decoration.kind {
+                        crate::world::DecorationKind::Fence => {
+                            p.rect_filled(
+                                Rect::from_min_size(
+                                    top.left_top() + egui::vec2(0.0, unit * 0.18),
+                                    egui::vec2(unit, unit * 0.10),
+                                ),
+                                1.0,
+                                Color32::from_rgb(120, 83, 62),
+                            );
+                            for offset in [0.18, 0.72] {
+                                p.rect_filled(
+                                    Rect::from_min_size(
+                                        top.left_top() + egui::vec2(unit * offset, unit * 0.02),
+                                        egui::vec2(unit * 0.10, unit * 0.38),
+                                    ),
+                                    1.0,
+                                    Color32::from_rgb(139, 93, 65),
+                                );
+                            }
+                        }
+                        crate::world::DecorationKind::Lamp => {
+                            p.rect_filled(
+                                Rect::from_min_size(
+                                    top.center() + egui::vec2(-unit * 0.04, -unit * 0.08),
+                                    egui::vec2(unit * 0.08, unit * 0.40),
+                                ),
+                                1.0,
+                                Color32::from_rgb(67, 59, 73),
+                            );
+                            p.circle_filled(
+                                top.center() - egui::vec2(0.0, unit * 0.20),
+                                unit * 0.12,
+                                Color32::from_rgb(255, 205, 96),
+                            );
+                        }
+                        crate::world::DecorationKind::Flower => {
+                            p.circle_filled(
+                                top.center(),
+                                unit * 0.12,
+                                Color32::from_rgb(244, 121, 185),
+                            );
+                            p.line_segment(
+                                [top.center(), top.center() + egui::vec2(0.0, unit * 0.24)],
+                                (1.0, Color32::from_rgb(53, 127, 83)),
+                            );
+                        }
+                        crate::world::DecorationKind::Snowman => {
+                            p.circle_filled(
+                                top.center() + egui::vec2(0.0, unit * 0.12),
+                                unit * 0.20,
+                                Color32::WHITE,
+                            );
+                            p.circle_filled(
+                                top.center() - egui::vec2(0.0, unit * 0.18),
+                                unit * 0.14,
+                                Color32::WHITE,
+                            );
+                            p.circle_filled(
+                                top.center() - egui::vec2(unit * 0.05, unit * 0.20),
+                                unit * 0.025,
+                                Color32::from_rgb(38, 32, 45),
+                            );
+                        }
+                    }
                 }
                 let mut actors = if scene.npcs.is_empty() {
                     vec![scene.npc]
@@ -861,5 +1075,23 @@ mod tests {
         assert!(!restored.walkable(0, 0));
         assert!(!restored.walkable(16, 0));
         assert!(restored.walkable(1, 0));
+    }
+
+    #[test]
+    fn default_scene_is_a_playable_snow_village() {
+        let scene = Scene::default();
+        assert!(scene.validate().is_ok());
+        assert_eq!(scene.tiles[3 * 16 + 5], 4);
+        assert_eq!(scene.tiles[1 * 16 + 1], 3);
+        assert!(scene
+            .decorations
+            .iter()
+            .any(|d| d.kind == DecorationKind::Fence));
+        assert!(scene
+            .decorations
+            .iter()
+            .any(|d| d.kind == DecorationKind::Snowman));
+        assert!(scene.walkable(scene.spawn[0], scene.spawn[1]));
+        assert!(!scene.walkable(5, 6));
     }
 }

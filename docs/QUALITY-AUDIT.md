@@ -13,13 +13,17 @@ RPG authoring environment. The supplied screenshot is a reference, not a working
 - Player position interpolates between grid cells; portals snap to their destination.
 - Character animation selects idle versus moving state.
 - Weather and camera updates use elapsed frame time instead of redraw counts.
+- The default starter scene contains authored snow terrain, path, building,
+  trees, fences, lamps, flowers, snowman, NPC and playable spawn data.
 
 ## Evidence
 
 All 26 tests pass and the native build succeeds. The rebuilt app opens with the
 functional authoring controls visible. Native interaction verified timeline Play
 starts the runtime at [8,9], Up moves the player to [8,8], Enter opens the dialogue,
-and F1 opens and closes the reference viewer. Existing dead-code warnings remain.
+and F1 opens and closes the reference viewer. The native screenshot showed the
+starter building, snow trees, fences, lamps, flowers, snowman and weather particles.
+Existing dead-code warnings remain in the advanced placeholder systems.
 
 ## Remaining quality gates
 
