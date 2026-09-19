@@ -16,6 +16,8 @@ Unit tests do not prove visual quality or mouse/keyboard usability. Record a sep
 
 Live check on macOS: application launched with accessible controls and a visible World canvas. The first New-project attempt failed because native text-entry automation did not update the relative destination field and the launch working directory was read-only. Default destination was changed to the user's Documents directory. Full create/paint/reopen UI acceptance remains pending; the storage tests cover persistence independently.
 
+Fresh native check after the runtime/weather/camera work: the signed local app launched, Play changed visibly to Stop, Arrow Up moved the player from `[8,9]` to `[8,8]`, and Enter displayed the authored dialogue box. This verifies native launch, keyboard movement, and interaction on macOS. Omarchy package installation, Linux GPU/backend behavior, and the full New → paint → Save → reopen workflow remain separate release gates.
+
 ## Remaining acceptance
 
 The current automated acceptance covers sprite editing primitives, animated frames, authored collision, dialogue advance, scene transitions, objective completion, progress restore, and the original three-map RPG route. Native mouse/keyboard automation for New → paint → Save → close → Open remains environment-dependent and was not counted as passed. Camera follow, multiple NPC entities, branching dialogue, arbitrary image import, and standalone export remain roadmap work.
