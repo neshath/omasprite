@@ -209,7 +209,7 @@ impl StudioApp {
             Workspace::Character => {
                 ui.label("DIRECTIONS");
                 for direction in ["UP", "DOWN", "LEFT", "RIGHT"] {
-                    ui.selectable_label(true, direction);
+                    let _ = ui.selectable_label(true, direction);
                 }
                 ui.label("IDLE / WALK / TALK");
             }
@@ -591,6 +591,12 @@ impl eframe::App for StudioApp {
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui::tools_panel(ui, self);
+                    ui.collapsing("Keyboard & accessibility", |ui| {
+                        ui.label(format!("Play: {} · Stop: Escape", self.keyboard.play));
+                        ui.label(format!("Move: {}/{}/{}/{} · Talk: {}", self.keyboard.up, self.keyboard.down, self.keyboard.left, self.keyboard.right, self.keyboard.interact));
+                        ui.label(format!("{} labelled regions · contrast {} · keyboard audit {}", self.accessibility.labels.len(), if self.accessibility.contrast_checked { "checked" } else { "pending" }, if self.accessibility.keyboard_complete { "complete" } else { "in progress" }));
+                        ui.label("Tab moves between controls. Space activates Play. Number keys select dialogue choices.");
+                    });
                     ui.collapsing("Extended workspace settings", |ui| {
                         ui::inspector_panel(ui, self)
                     });
