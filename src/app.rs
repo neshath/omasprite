@@ -27,6 +27,9 @@ pub struct StudioApp {
 }
 
 impl StudioApp {
+    pub fn open_project(&mut self, path: String) {
+        self.world = crate::world::World::from_file(path);
+    }
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::apply(&cc.egui_ctx);
         Self {
@@ -41,7 +44,7 @@ impl StudioApp {
             playing: false,
             map_style: MapStyle::Overworld,
             dialogue_open: true,
-            dialogue_speaker: "Professor Rowan".into(),
+            dialogue_speaker: "Mira".into(),
             dialogue_text: "A new adventure starts with one small idea. What will you make?".into(),
             lighting_enabled: true,
             shadows_enabled: true,
@@ -60,9 +63,18 @@ impl StudioApp {
             ui.separator();
             ui.label(egui::RichText::new(self.workspace.label()).color(theme::MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if ui.button("□  PLAY").clicked() {
+                if ui
+                    .button(if self.playing {
+                        "□  STOP"
+                    } else {
+                        "▷  PLAY"
+                    })
+                    .clicked()
+                {
                     self.playing = !self.playing;
-                    self.world.start();
+                    if self.playing {
+                        self.world.start();
+                    }
                     self.workspace = Workspace::World;
                 }
                 if ui.button("▱  DIALOGUE").clicked() {
@@ -103,6 +115,14 @@ impl StudioApp {
     }
 
     fn canvas(&mut self, ui: &mut egui::Ui) {
+        if self.playing {
+            self.world.show(ui, true);
+            return;
+        }
+        if self.workspace == Workspace::Sprite {
+            self.world.sprite_ui(ui);
+            return;
+        }
         if self.workspace == Workspace::World {
             self.world.show(ui, self.playing);
             return;

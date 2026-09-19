@@ -1,6 +1,8 @@
 mod app;
 mod model;
 mod project;
+mod runtime;
+mod sprite;
 mod theme;
 mod ui;
 mod world;
@@ -28,6 +30,14 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "OMASPRITE",
         options,
-        Box::new(|cc| Ok(Box::new(app::StudioApp::new(cc)))),
+        Box::new(move |cc| {
+            let mut app = app::StudioApp::new(cc);
+            if args.get(1).map(String::as_str) == Some("--project") {
+                if let Some(path) = args.get(2) {
+                    app.open_project(path.clone());
+                }
+            }
+            Ok(Box::new(app))
+        }),
     )
 }

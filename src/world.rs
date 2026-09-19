@@ -4,19 +4,34 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
+    #[serde(default)]
+    pub sprite: crate::sprite::Sprite,
+    #[serde(default)]
+    pub portals: Vec<crate::runtime::Portal>,
+    #[serde(default)]
+    pub objective: Option<[usize; 2]>,
     pub version: u32,
     pub tiles: Vec<u8>,
+    #[serde(default = "default_collision")]
+    pub collision: Vec<bool>,
     pub heights: Vec<u8>,
     pub npc: [usize; 2],
     pub spawn: [usize; 2],
     pub dialogue: String,
     pub ambient: f32,
 }
+fn default_collision() -> Vec<bool> {
+    vec![false; 256]
+}
 impl Default for Scene {
     fn default() -> Self {
         Self {
+            sprite: crate::sprite::Sprite::default(),
+            portals: vec![],
+            objective: None,
             version: 1,
             tiles: vec![0; 256],
+            collision: default_collision(),
             heights: vec![0; 256],
             npc: [8, 7],
             spawn: [8, 9],
@@ -28,7 +43,14 @@ impl Default for Scene {
 impl Scene {
     pub fn validate(&self) -> Result<(), String> {
         if self.version != 1
+            || !self.sprite.validate()
+            || self
+                .portals
+                .iter()
+                .any(|p| p.at.iter().chain(p.spawn.iter()).any(|v| *v >= 16) || p.map.is_empty())
+            || self.objective.is_some_and(|p| p.iter().any(|v| *v >= 16))
             || self.tiles.len() != 256
+            || self.collision.len() != 256
             || self.heights.len() != 256
             || self.tiles.iter().any(|v| *v > 4)
             || self.heights.iter().any(|v| *v > 4)
@@ -41,10 +63,16 @@ impl Scene {
         Ok(())
     }
     pub fn walkable(&self, x: usize, y: usize) -> bool {
-        x < 16 && y < 16 && self.tiles[y * 16 + x] < 2
+        x < 16 && y < 16 && self.tiles[y * 16 + x] < 2 && !self.collision[y * 16 + x]
     }
 }
 pub struct World {
+    sprite_editor: crate::sprite::Editor,
+    runtime: Option<crate::runtime::Runtime>,
+    active_map: String,
+    new_map: String,
+    portal_target: String,
+    portal_spawn: [usize; 2],
     project_store: Option<crate::project::ProjectStore>,
     project_folder: String,
     project_name: String,
@@ -62,6 +90,12 @@ pub struct World {
 impl Default for World {
     fn default() -> Self {
         Self {
+            sprite_editor: crate::sprite::Editor::default(),
+            runtime: None,
+            active_map: "main".into(),
+            new_map: "new-map".into(),
+            portal_target: "main".into(),
+            portal_spawn: [8, 9],
             project_store: None,
             project_folder: std::env::var_os("HOME")
                 .map(std::path::PathBuf::from)
@@ -85,6 +119,9 @@ impl Default for World {
     }
 }
 impl World {
+    pub fn sprite_ui(&mut self, ui: &mut egui::Ui) {
+        self.sprite_editor.show(ui, &mut self.scene.sprite);
+    }
     pub fn project_label(&self) -> String {
         let name = self
             .project_store
@@ -115,6 +152,7 @@ impl World {
         };
         match result {
             Ok((store, scene)) => {
+                self.active_map = store.manifest.entry_scene.clone();
                 self.scene = scene;
                 self.saved_scene = Some(self.scene.clone());
                 self.project_store = Some(store);
@@ -127,6 +165,15 @@ impl World {
         }
     }
     pub fn from_file(path: String) -> Self {
+        if std::path::Path::new(&path).is_dir() {
+            let mut world = Self {
+                project_folder: path,
+                discard_confirmed: true,
+                ..Default::default()
+            };
+            world.project_action(false);
+            return world;
+        }
         let mut world = Self {
             path,
             ..Default::default()
@@ -135,8 +182,33 @@ impl World {
         world
     }
     pub fn start(&mut self) {
+        self.runtime = None;
         self.player = self.scene.spawn;
         self.talking = false;
+        let mut maps = std::collections::BTreeMap::new();
+        if let Some(store) = &self.project_store {
+            for id in store.manifest.scenes.keys() {
+                match store.scene(id) {
+                    Ok(s) => {
+                        maps.insert(id.clone(), s);
+                    }
+                    Err(e) => {
+                        self.status = e;
+                        return;
+                    }
+                }
+            }
+        }
+        maps.insert(self.active_map.clone(), self.scene.clone());
+        match crate::runtime::Runtime::new(maps, &self.active_map) {
+            Ok(r) => {
+                self.runtime = Some(r);
+            }
+            Err(e) => {
+                self.runtime = None;
+                self.status = e;
+            }
+        }
     }
     pub fn load(&mut self) {
         let result = std::fs::read(&self.path)
@@ -159,7 +231,7 @@ impl World {
     }
     pub fn save(&mut self) {
         if let Some(store) = self.project_store.as_mut() {
-            let id = store.manifest.entry_scene.clone();
+            let id = self.active_map.clone();
             match store.save_scene(&id, &self.scene) {
                 Ok(()) => {
                     self.saved_scene = Some(self.scene.clone());
@@ -189,6 +261,55 @@ impl World {
     }
     pub fn show(&mut self, ui: &mut egui::Ui, playing: bool) {
         if !playing {
+            if ui.button("Undo map edit").clicked() {
+                if let Some(scene) = self.history.pop() {
+                    self.scene = scene;
+                }
+            }
+            let ids = self
+                .project_store
+                .as_ref()
+                .map(|s| s.manifest.scenes.keys().cloned().collect::<Vec<_>>())
+                .unwrap_or_default();
+            ui.horizontal_wrapped(|ui| {
+                for id in ids {
+                    if ui.selectable_label(self.active_map == id, &id).clicked() {
+                        self.save();
+                        if self.saved_scene.as_ref() == Some(&self.scene) {
+                            if let Some(store) = &self.project_store {
+                                match store.scene(&id) {
+                                    Ok(scene) => {
+                                        self.scene = scene;
+                                        self.saved_scene = Some(self.scene.clone());
+                                        self.active_map = id;
+                                        self.history.clear();
+                                    }
+                                    Err(e) => self.status = e,
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            if self.project_store.is_some() {
+                ui.horizontal(|ui| {
+                    ui.text_edit_singleline(&mut self.new_map);
+                    if ui.button("Add blank map").clicked() {
+                        self.save();
+                        if self.saved_scene.as_ref() == Some(&self.scene) {
+                            let store = self.project_store.as_mut().unwrap();
+                            if store.manifest.scenes.contains_key(&self.new_map) {
+                                self.status = "Map ID exists".into();
+                            } else {
+                                match store.save_scene(&self.new_map, &Scene::default()) {
+                                    Ok(()) => self.status = "Map added; select its tab".into(),
+                                    Err(e) => self.status = e,
+                                }
+                            }
+                        }
+                    }
+                });
+            }
             ui.collapsing("Project · New / Open / Save", |ui| {
                 ui.horizontal(|ui| {
                     ui.label("New folder / existing project folder");
@@ -234,21 +355,41 @@ impl World {
         }
         if !playing {
             ui.horizontal_wrapped(|ui| {
-                for (i, n) in ["Snow", "Path", "Water", "Tree", "Building", "NPC", "Spawn"]
-                    .iter()
-                    .enumerate()
+                for (i, n) in [
+                    "Snow",
+                    "Path",
+                    "Water",
+                    "Tree",
+                    "Building",
+                    "NPC",
+                    "Spawn",
+                    "Portal",
+                    "Objective",
+                    "Remove portal",
+                    "Collision",
+                ]
+                .iter()
+                .enumerate()
                 {
                     ui.selectable_value(&mut self.brush, i as u8, *n);
                 }
                 ui.add(egui::Slider::new(&mut self.elevation, 0..=4).text("Height"));
             });
+            if self.brush == 7 {
+                ui.horizontal(|ui| {
+                    ui.label("Destination map");
+                    ui.text_edit_singleline(&mut self.portal_target);
+                    ui.add(egui::DragValue::new(&mut self.portal_spawn[0]).range(0..=15));
+                    ui.add(egui::DragValue::new(&mut self.portal_spawn[1]).range(0..=15));
+                });
+            }
             ui.horizontal(|ui| {
                 ui.label("NPC says");
                 ui.text_edit_singleline(&mut self.scene.dialogue);
                 ui.add(egui::Slider::new(&mut self.scene.ambient, 0.2..=1.0).text("Daylight"));
             });
         } else {
-            ui.label("Arrow keys: walk • Enter: talk to nearby NPC / close dialogue • PLAY: return to editor");
+            ui.label("Arrow keys: walk • Enter: talk / next page • STOP: return to editor");
             if !ui.ctx().wants_keyboard_input() {
                 for (key, dx, dy) in [
                     (egui::Key::ArrowLeft, -1, 0),
@@ -256,27 +397,55 @@ impl World {
                     (egui::Key::ArrowUp, 0, -1),
                     (egui::Key::ArrowDown, 0, 1),
                 ] {
-                    if !self.talking && ui.input(|i| i.key_pressed(key)) {
-                        let x = self.player[0] as i32 + dx;
-                        let y = self.player[1] as i32 + dy;
-                        if x >= 0
-                            && y >= 0
-                            && self.scene.walkable(x as usize, y as usize)
-                            && [x as usize, y as usize] != self.scene.npc
-                            && self.scene.heights[y as usize * 16 + x as usize]
-                                .abs_diff(self.scene.heights[self.player[1] * 16 + self.player[0]])
-                                <= 1
-                        {
-                            self.player = [x as usize, y as usize];
+                    if ui.input(|i| i.key_pressed(key)) {
+                        if let Some(runtime) = &mut self.runtime {
+                            runtime.step(dx, dy);
                         }
                     }
                 }
-                if ui.input(|i| i.key_pressed(egui::Key::Enter))
-                    && self.player[0].abs_diff(self.scene.npc[0])
-                        + self.player[1].abs_diff(self.scene.npc[1])
-                        <= 1
-                {
-                    self.talking = !self.talking;
+                if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    if let Some(runtime) = &mut self.runtime {
+                        runtime.interact();
+                    }
+                }
+            }
+            if let Some(runtime) = &mut self.runtime {
+                self.player = runtime.state.position;
+                self.talking = runtime.page.is_some();
+                ui.label(format!(
+                    "Map: {}   Player: {:?}   Objective: {}",
+                    runtime.state.map,
+                    runtime.state.position,
+                    if runtime.state.completed {
+                        "complete"
+                    } else {
+                        "pending"
+                    }
+                ));
+                if let Some(store) = &self.project_store {
+                    ui.horizontal(|ui| {
+                        let path = store.root.join("saves/game.json");
+                        if ui.button("Save game").clicked() {
+                            self.status = serde_json::to_vec_pretty(&runtime.state)
+                                .map_err(|e| e.to_string())
+                                .and_then(|b| {
+                                    let tmp = path.with_extension("pending");
+                                    std::fs::write(&tmp, b)
+                                        .and_then(|_| std::fs::rename(tmp, &path))
+                                        .map_err(|e| e.to_string())
+                                })
+                                .map(|_| "Game saved".into())
+                                .unwrap_or_else(|e| e);
+                        }
+                        if ui.button("Load game").clicked() {
+                            self.status = std::fs::read(&path)
+                                .map_err(|e| e.to_string())
+                                .and_then(|b| serde_json::from_slice(&b).map_err(|e| e.to_string()))
+                                .and_then(|s| runtime.restore(s))
+                                .map(|_| "Game restored".into())
+                                .unwrap_or_else(|e| e);
+                        }
+                    });
                 }
             }
         }
@@ -305,6 +474,17 @@ impl World {
                     match self.brush {
                         5 => self.scene.npc = xy,
                         6 => self.scene.spawn = xy,
+                        7 => {
+                            self.scene.portals.retain(|p| p.at != xy);
+                            self.scene.portals.push(crate::runtime::Portal {
+                                at: xy,
+                                map: self.portal_target.clone(),
+                                spawn: self.portal_spawn,
+                            });
+                        }
+                        8 => self.scene.objective = Some(xy),
+                        9 => self.scene.portals.retain(|p| p.at != xy),
+                        10 => self.scene.collision[idx] = !self.scene.collision[idx],
                         _ => {
                             self.scene.tiles[idx] = self.brush;
                             self.scene.heights[idx] = self.elevation;
@@ -314,11 +494,19 @@ impl World {
                 }
             }
         }
+        let scene = if playing {
+            self.runtime
+                .as_ref()
+                .map(|r| r.scene())
+                .unwrap_or(&self.scene)
+        } else {
+            &self.scene
+        };
         for y in 0..16 {
             for x in 0..16 {
                 let i = y * 16 + x;
-                let tile = self.scene.tiles[i];
-                let h = self.scene.heights[i] as f32 * unit * 0.18;
+                let tile = scene.tiles[i];
+                let h = scene.heights[i] as f32 * unit * 0.18;
                 let pos = origin + egui::vec2(x as f32 * unit, y as f32 * unit * 0.55 - h);
                 let top = Rect::from_min_size(pos, egui::vec2(unit, unit * 0.55));
                 let rgb = match tile {
@@ -328,9 +516,9 @@ impl World {
                     _ => [203, 221, 226],
                 };
                 let c = Color32::from_rgb(
-                    (rgb[0] as f32 * self.scene.ambient) as u8,
-                    (rgb[1] as f32 * self.scene.ambient) as u8,
-                    (rgb[2] as f32 * self.scene.ambient) as u8,
+                    (rgb[0] as f32 * scene.ambient) as u8,
+                    (rgb[1] as f32 * scene.ambient) as u8,
+                    (rgb[2] as f32 * scene.ambient) as u8,
                 );
                 p.rect_filled(
                     top.translate(egui::vec2(0.0, h)),
@@ -343,8 +531,21 @@ impl World {
                     Color32::from_rgb(131, 155, 180),
                 );
                 p.rect_filled(top, 0.0, c);
+                if scene.portals.iter().any(|portal| portal.at == [x, y]) {
+                    p.rect_stroke(top.shrink(2.0), 0.0, (2.0, Color32::from_rgb(210, 80, 190)));
+                }
+                if scene.objective == Some([x, y]) {
+                    p.circle_filled(top.center(), unit * 0.14, Color32::YELLOW);
+                }
                 if !playing {
                     p.rect_stroke(top, 0.0, (0.5, Color32::from_black_alpha(35)));
+                    if scene.collision[i] {
+                        p.rect_filled(
+                            top.shrink(unit * 0.2),
+                            0.0,
+                            Color32::from_rgba_unmultiplied(210, 70, 120, 90),
+                        );
+                    }
                 }
                 if tile >= 3 {
                     p.rect_filled(
@@ -372,18 +573,36 @@ impl World {
                     );
                 }
                 for (xy, col) in [
-                    (self.scene.npc, Color32::from_rgb(93, 161, 235)),
+                    (scene.npc, Color32::from_rgb(93, 161, 235)),
                     (
-                        if playing {
-                            self.player
-                        } else {
-                            self.scene.spawn
-                        },
+                        if playing { self.player } else { scene.spawn },
                         Color32::from_rgb(224, 67, 135),
                     ),
                 ] {
                     if xy == [x, y] {
                         let foot = top.center();
+                        if col == Color32::from_rgb(224, 67, 135)
+                            && scene
+                                .sprite
+                                .frames
+                                .iter()
+                                .any(|f| f.iter().any(|c| c[3] > 0))
+                        {
+                            let frame = if playing {
+                                (ui.input(|i| i.time) * 1000.0 / scene.sprite.frame_ms as f64)
+                                    as usize
+                            } else {
+                                0
+                            };
+                            scene.sprite.draw(&p, foot, unit / 16.0, frame);
+                            if playing {
+                                ui.ctx()
+                                    .request_repaint_after(std::time::Duration::from_millis(
+                                        scene.sprite.frame_ms as u64,
+                                    ));
+                            }
+                            continue;
+                        }
                         p.rect_filled(
                             Rect::from_center_size(foot, egui::vec2(unit * 0.6, unit * 0.18)),
                             3.0,
@@ -417,7 +636,11 @@ impl World {
             p.rect_filled(box_rect, 12.0, Color32::WHITE);
             p.rect_stroke(box_rect, 12.0, (2.0, Color32::DARK_GRAY));
             let text = p.layout(
-                self.scene.dialogue.clone(),
+                self.runtime
+                    .as_ref()
+                    .and_then(|r| r.line())
+                    .unwrap_or("")
+                    .to_string(),
                 egui::FontId::proportional(18.0),
                 Color32::BLACK,
                 box_rect.width() - 32.0,

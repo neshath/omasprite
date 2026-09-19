@@ -4,7 +4,7 @@ Milestone 1 introduces a project directory with `project.json`, `scenes/`, `tile
 
 The manifest contains `version`, `name`, `entry_scene`, and a sorted `scenes` mapping of stable scene IDs to relative JSON paths. Asset directories are reserved; no asset importer is claimed yet.
 
-Scene v1 retains the existing 16×16 tiles/heights, one NPC position, spawn, dialogue string and ambient value. Tile IDs are 0 snow, 1 path, 2 water, 3 tree, 4 building. Collision is currently derived from IDs; independent collision is a future schema change.
+Scene v1 stores 16×16 tiles/heights plus an independent 16×16 collision layer, one NPC position, spawn, dialogue string and ambient value. Tile IDs are 0 snow, 1 path, 2 water, 3 tree, 4 building. Older scene files without `collision` are migrated in memory as fully walkable.
 
 Save writes a new immutable scene revision, then writes/syncs `project.json.pending`, then renames it over the manifest. The previous scene remains on disk. An interrupted manifest write leaves the prior project loadable. A stale pending file blocks further saves and is retained for inspection; the editor reports the error. There is no automatic revision pruning or multi-writer support.
 
