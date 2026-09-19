@@ -16,8 +16,40 @@ fn section_heading(ui: &mut egui::Ui, title: &str) {
 }
 
 pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
-    ui.label(egui::RichText::new("Inspector").size(20.0).strong());
-    ui.label(egui::RichText::new("Build your scene one decision at a time.").color(theme::MUTED));
+    ui.label(egui::RichText::new("Navigator").size(20.0).strong());
+    ui.label(egui::RichText::new("Your project, in one place.").color(theme::MUTED));
+    section_heading(ui, "Project");
+    ui.label(egui::RichText::new(&app.project.name).strong());
+    ui.label(
+        egui::RichText::new(&app.project.path)
+            .small()
+            .color(theme::MUTED),
+    );
+    ui.separator();
+    section_heading(ui, "Library");
+    for (workspace, label, detail) in [
+        (Workspace::World, "Scenes", "Snow Village"),
+        (Workspace::Sprite, "Sprites", "Hero and NPCs"),
+        (Workspace::Character, "Characters", "Directional sets"),
+        (Workspace::Logic, "Dialogue & logic", "Events and choices"),
+        (
+            Workspace::Effects,
+            "Lighting & effects",
+            "Weather and shadows",
+        ),
+    ] {
+        if ui
+            .selectable_label(
+                app.workspace == workspace,
+                egui::RichText::new(label).strong(),
+            )
+            .on_hover_text(detail)
+            .clicked()
+        {
+            app.workspace = workspace;
+        }
+    }
+    ui.separator();
     section_heading(ui, "Tools");
     for row in [
         [Tool::Pencil, Tool::Fill, Tool::Eraser],
@@ -49,7 +81,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     ui.separator();
     section_heading(ui, "Palette");
     let colors = [
-        theme::HOT,
+        theme::BRAND,
         theme::VIOLET,
         theme::LIME,
         theme::SKY,
@@ -92,7 +124,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     section_heading(ui, "Assets");
     ui.horizontal_wrapped(|ui| {
         for (label, color) in [
-            ("HERO", theme::HOT),
+            ("HERO", theme::BRAND),
             ("TREE", theme::LIME),
             ("TILE", theme::SKY),
             ("FX", theme::VIOLET),
@@ -105,26 +137,39 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         }
     });
     ui.add_space(10.0);
-    section_heading(ui, "Creator progress");
-    ui.add(
-        egui::ProgressBar::new(app.project.level as f32 / 20.0)
-            .text(format!("LEVEL {}", app.project.level)),
-    );
-    ui.label(
-        egui::RichText::new("Next: lighting and shadows")
-            .small()
-            .color(theme::MUTED),
-    );
+    ui.collapsing("Creator progress", |ui| {
+        ui.add(
+            egui::ProgressBar::new(app.project.level as f32 / 20.0)
+                .text(format!("Level {}", app.project.level)),
+        );
+        ui.label(
+            egui::RichText::new("Next: lighting and shadows")
+                .small()
+                .color(theme::MUTED),
+        );
+    });
 }
 
 pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("Project").size(15.0).strong());
+        ui.label(egui::RichText::new("Inspector").size(20.0).strong());
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            ui.label("v0.1.0");
+            ui.label(
+                egui::RichText::new("Properties")
+                    .small()
+                    .color(theme::MUTED),
+            );
         });
     });
-    ui.label(egui::RichText::new(&app.project.name).color(theme::LIME));
+    ui.label(egui::RichText::new(app.workspace.label()).color(theme::LIME));
+    ui.label(
+        egui::RichText::new("Select an item in the canvas to edit its properties.")
+            .small()
+            .color(theme::MUTED),
+    );
+    ui.separator();
+    section_heading(ui, "Project");
+    ui.label(egui::RichText::new(&app.project.name).strong());
     ui.label(
         egui::RichText::new(&app.project.path)
             .small()
@@ -186,42 +231,43 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         .color(theme::MUTED),
     );
     ui.separator();
-    section_heading(ui, "Project assets");
-    for asset in [
-        "hero_idle.png",
-        "hero_walk.png",
-        "forest_tiles.png",
-        "pink_slime.png",
-        "torch_glow.png",
-    ] {
-        ui.horizontal(|ui| {
-            ui.label("▧");
-            ui.label(asset);
-        });
-    }
-    ui.separator();
-    section_heading(ui, "Unlock path");
-    for (level, title, detail) in LEVELS.iter() {
-        let unlocked = app.project.level >= *level;
-        ui.horizontal(|ui| {
-            ui.label(
-                egui::RichText::new(if unlocked { "●" } else { "○" }).color(if unlocked {
-                    theme::LIME
-                } else {
-                    theme::MUTED
-                }),
-            );
-            ui.vertical(|ui| {
+    ui.collapsing("Project assets", |ui| {
+        for asset in [
+            "hero_idle.png",
+            "hero_walk.png",
+            "forest_tiles.png",
+            "pink_slime.png",
+            "torch_glow.png",
+        ] {
+            let _ = ui.selectable_label(false, asset);
+        }
+    });
+    ui.collapsing("Creator path", |ui| {
+        for (level, title, detail) in LEVELS.iter() {
+            let unlocked = app.project.level >= *level;
+            ui.horizontal(|ui| {
                 ui.label(
-                    egui::RichText::new(format!("{}  {}", level, title))
-                        .strong()
-                        .color(if unlocked { theme::INK } else { theme::MUTED }),
+                    egui::RichText::new(if unlocked { "●" } else { "○" }).color(if unlocked {
+                        theme::LIME
+                    } else {
+                        theme::MUTED
+                    }),
                 );
-                ui.label(egui::RichText::new(*detail).small().color(theme::MUTED));
+                ui.vertical(|ui| {
+                    ui.label(
+                        egui::RichText::new(format!("{}  {}", level, title))
+                            .strong()
+                            .color(if unlocked { theme::INK } else { theme::MUTED }),
+                    );
+                    ui.label(egui::RichText::new(*detail).small().color(theme::MUTED));
+                });
             });
-        });
-    }
-    ui.separator();
-    section_heading(ui, "Next step");
-    ui.label("Paint a sprite, then press Play. New tools appear as your game grows.");
+        }
+    });
+    ui.add_space(8.0);
+    ui.label(
+        egui::RichText::new("Tip: press Space to preview your game.")
+            .small()
+            .color(theme::MUTED),
+    );
 }

@@ -660,8 +660,12 @@ impl World {
         );
         let p = ui.painter_at(rect);
         p.rect_filled(rect, 0.0, Color32::from_rgb(27, 24, 35));
-        let unit = (rect.width() / 18.0).min(rect.height() / 12.0).max(1.0);
-        let origin = egui::pos2(rect.center().x - unit * 8.0, rect.top() + unit * 1.8);
+        let unit = (rect.width() / 16.0).min(rect.height() / 9.0).max(1.0);
+        let projected_height = unit * 8.8;
+        let origin = egui::pos2(
+            rect.center().x - unit * 8.0,
+            rect.top() + ((rect.height() - projected_height) * 0.5).max(0.0),
+        );
         if !playing && (response.clicked() || response.dragged()) {
             if let Some(pos) = response.interact_pointer_pos() {
                 let x = ((pos.x - origin.x) / unit).floor() as i32;

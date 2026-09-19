@@ -105,9 +105,13 @@ impl StudioApp {
         ui.horizontal(|ui| {
             ui.add_space(8.0);
             ui.label(egui::RichText::new("OMASPRITE").size(18.0).strong());
-            ui.label(egui::RichText::new("Game Editor Beta").color(theme::MUTED));
+            ui.label(
+                egui::RichText::new("Game Editor Beta")
+                    .small()
+                    .color(theme::MUTED),
+            );
             ui.separator();
-            ui.label(egui::RichText::new(self.workspace.label()).color(theme::MUTED));
+            ui.label(egui::RichText::new(self.world.project_label()).color(theme::MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let play_label = if self.playing { "Stop" } else { "Play" };
                 if ui
@@ -142,29 +146,51 @@ impl StudioApp {
     }
 
     fn workspace_tabs(&mut self, ui: &mut egui::Ui) {
+        egui::Frame::default()
+            .fill(theme::PANEL)
+            .rounding(egui::Rounding::same(8.0))
+            .inner_margin(egui::Margin::same(3.0))
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    for (w, label) in [
+                        (Workspace::Sprite, "Sprite"),
+                        (Workspace::World, "World"),
+                        (Workspace::Logic, "Logic"),
+                        (Workspace::Character, "Character"),
+                        (Workspace::Effects, "Effects"),
+                    ] {
+                        let selected = self.workspace == w;
+                        let response = ui.add(egui::Button::new(label).fill(if selected {
+                            theme::HOT
+                        } else {
+                            Color32::TRANSPARENT
+                        }));
+                        if response.clicked() {
+                            self.workspace = w;
+                        }
+                    }
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new("F1  Reference")
+                            .small()
+                            .color(theme::MUTED),
+                    );
+                });
+            });
+    }
+
+    fn contextbar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.add_space(8.0);
-            for (w, label) in [
-                (Workspace::Sprite, "Sprite"),
-                (Workspace::World, "World"),
-                (Workspace::Logic, "Logic"),
-                (Workspace::Character, "Character"),
-                (Workspace::Effects, "Effects"),
-            ] {
-                let selected = self.workspace == w;
-                let response = ui.add(egui::Button::new(label).fill(if selected {
-                    theme::HOT_SOFT
-                } else {
-                    Color32::TRANSPARENT
-                }));
-                if response.clicked() {
-                    self.workspace = w;
-                }
-            }
+            ui.label(egui::RichText::new(self.workspace.label()).strong());
+            ui.separator();
+            ui.label(
+                egui::RichText::new("Create, preview, refine")
+                    .small()
+                    .color(theme::MUTED),
+            );
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.add_space(8.0);
                 ui.label(
-                    egui::RichText::new("F1  Reference")
+                    egui::RichText::new("16 × 16 scene")
                         .small()
                         .color(theme::MUTED),
                 );
@@ -325,11 +351,11 @@ impl StudioApp {
             ],
             (5.0, Color32::WHITE),
         );
-        painter.circle_filled(egui::pos2(cx + 64.0, cy + 2.0), 18.0, theme::HOT);
+        painter.circle_filled(egui::pos2(cx + 64.0, cy + 2.0), 18.0, theme::BRAND);
         painter.rect_filled(
             egui::Rect::from_center_size(egui::pos2(cx + 64.0, cy + 27.0), egui::vec2(27.0, 25.0)),
             4.0,
-            theme::HOT,
+            theme::BRAND,
         );
         if self.onion_skin {
             painter.circle_filled(
@@ -647,14 +673,13 @@ impl eframe::App for StudioApp {
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("▣");
-                    ui.label("OMARCHY LINUX");
-                    ui.separator();
-                    ui.label(
-                        egui::RichText::new("MAKE GAMES. PIXEL BY PIXEL.").color(theme::MUTED),
-                    );
+                    ui.label(egui::RichText::new(&self.world.status).color(theme::MUTED));
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.label(format!("PROJECT: {}", self.world.project_label()));
+                        ui.label(
+                            egui::RichText::new("Space Play  ·  F1 Reference")
+                                .small()
+                                .color(theme::MUTED),
+                        );
                     });
                 });
             });
@@ -665,6 +690,25 @@ impl eframe::App for StudioApp {
                     .inner_margin(egui::Margin::symmetric(6.0, 5.0)),
             )
             .show(ctx, |ui| self.workspace_tabs(ui));
+        egui::TopBottomPanel::top("contextbar")
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::BG)
+                    .inner_margin(egui::Margin::symmetric(16.0, 6.0)),
+            )
+            .show(ctx, |ui| self.contextbar(ui));
+        egui::SidePanel::left("navigator")
+            .resizable(true)
+            .default_width(236.0)
+            .min_width(210.0)
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::PANEL_DEEP)
+                    .inner_margin(egui::Margin::symmetric(14.0, 12.0)),
+            )
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| ui::tools_panel(ui, self));
+            });
         egui::SidePanel::right("inspector")
             .resizable(true)
             .default_width(312.0)
@@ -675,15 +719,12 @@ impl eframe::App for StudioApp {
             )
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui::tools_panel(ui, self);
+                    ui::inspector_panel(ui, self);
                     ui.collapsing("Keyboard and accessibility", |ui| {
                         ui.label(format!("Play: {} · Stop: Escape", self.keyboard.play));
                         ui.label(format!("Move: {}/{}/{}/{} · Talk: {}", self.keyboard.up, self.keyboard.down, self.keyboard.left, self.keyboard.right, self.keyboard.interact));
                         ui.label(format!("{} labelled regions · contrast {} · keyboard audit {}", self.accessibility.labels.len(), if self.accessibility.contrast_checked { "checked" } else { "pending" }, if self.accessibility.keyboard_complete { "complete" } else { "in progress" }));
                         ui.label("Tab moves between controls. Space activates Play. Number keys select dialogue choices.");
-                    });
-                    ui.collapsing("Workspace settings", |ui| {
-                        ui::inspector_panel(ui, self)
                     });
                 });
             });
