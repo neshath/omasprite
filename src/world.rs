@@ -10,6 +10,10 @@ pub struct Scene {
     pub portals: Vec<crate::runtime::Portal>,
     #[serde(default)]
     pub objective: Option<[usize; 2]>,
+    #[serde(default = "default_light")]
+    pub light: [usize; 2],
+    #[serde(default = "default_light_radius")]
+    pub light_radius: f32,
     pub version: u32,
     pub tiles: Vec<u8>,
     #[serde(default = "default_collision")]
@@ -25,12 +29,20 @@ pub struct Scene {
 fn default_collision() -> Vec<bool> {
     vec![false; 256]
 }
+fn default_light() -> [usize; 2] {
+    [8, 8]
+}
+fn default_light_radius() -> f32 {
+    8.0
+}
 impl Default for Scene {
     fn default() -> Self {
         Self {
             sprite: crate::sprite::Sprite::default(),
             portals: vec![],
             objective: None,
+            light: default_light(),
+            light_radius: default_light_radius(),
             version: 1,
             tiles: vec![0; 256],
             collision: default_collision(),
@@ -52,6 +64,9 @@ impl Scene {
                 .iter()
                 .any(|p| p.at.iter().chain(p.spawn.iter()).any(|v| *v >= 16) || p.map.is_empty())
             || self.objective.is_some_and(|p| p.iter().any(|v| *v >= 16))
+            || self.light.iter().any(|v| *v >= 16)
+            || !self.light_radius.is_finite()
+            || !(1.0..=32.0).contains(&self.light_radius)
             || self.tiles.len() != 256
             || self.collision.len() != 256
             || self.heights.len() != 256
@@ -371,6 +386,7 @@ impl World {
                     "Objective",
                     "Remove portal",
                     "Collision",
+                    "Light",
                 ]
                 .iter()
                 .enumerate()
@@ -496,6 +512,7 @@ impl World {
                         8 => self.scene.objective = Some(xy),
                         9 => self.scene.portals.retain(|p| p.at != xy),
                         10 => self.scene.collision[idx] = !self.scene.collision[idx],
+                        11 => self.scene.light = xy,
                         _ => {
                             self.scene.tiles[idx] = self.brush;
                             self.scene.heights[idx] = self.elevation;
@@ -526,10 +543,17 @@ impl World {
                     2 => [74, 126, 170],
                     _ => [203, 221, 226],
                 };
+                let light_origin = if playing { self.player } else { scene.light };
+                let distance = ((x as f32 - light_origin[0] as f32).powi(2)
+                    + (y as f32 - light_origin[1] as f32).powi(2))
+                .sqrt();
+                let falloff = (1.0 - distance / scene.light_radius).clamp(0.0, 1.0);
+                let illumination =
+                    (scene.ambient + falloff * (1.0 - scene.ambient)).clamp(0.2, 1.0);
                 let c = Color32::from_rgb(
-                    (rgb[0] as f32 * scene.ambient) as u8,
-                    (rgb[1] as f32 * scene.ambient) as u8,
-                    (rgb[2] as f32 * scene.ambient) as u8,
+                    (rgb[0] as f32 * illumination) as u8,
+                    (rgb[1] as f32 * illumination) as u8,
+                    (rgb[2] as f32 * illumination) as u8,
                 );
                 p.rect_filled(
                     top.translate(egui::vec2(0.0, h)),
@@ -547,6 +571,9 @@ impl World {
                 }
                 if scene.objective == Some([x, y]) {
                     p.circle_filled(top.center(), unit * 0.14, Color32::YELLOW);
+                }
+                if scene.light == [x, y] {
+                    p.circle_stroke(top.center(), unit * 0.22, (2.0, Color32::YELLOW));
                 }
                 if !playing {
                     p.rect_stroke(top, 0.0, (0.5, Color32::from_black_alpha(35)));

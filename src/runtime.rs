@@ -237,4 +237,16 @@ mod tests {
         let mut r = Runtime::new(BTreeMap::from([("main".into(), s)]), "main").unwrap();
         assert!(!r.step(1, 0));
     }
+
+    #[test]
+    fn scene_light_roundtrips_and_validates_radius() {
+        let mut scene = Scene::default();
+        scene.light = [3, 4];
+        scene.light_radius = 12.0;
+        let copy: Scene = serde_json::from_slice(&serde_json::to_vec(&scene).unwrap()).unwrap();
+        assert_eq!(copy.light, [3, 4]);
+        assert!(copy.validate().is_ok());
+        scene.light_radius = 0.0;
+        assert!(scene.validate().is_err());
+    }
 }
