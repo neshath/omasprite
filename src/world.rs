@@ -434,6 +434,23 @@ impl World {
                         runtime.interact();
                     }
                 }
+                for (key, index) in [
+                    (egui::Key::Num1, 0),
+                    (egui::Key::Num2, 1),
+                    (egui::Key::Num3, 2),
+                    (egui::Key::Num4, 3),
+                    (egui::Key::Num5, 4),
+                    (egui::Key::Num6, 5),
+                    (egui::Key::Num7, 6),
+                    (egui::Key::Num8, 7),
+                    (egui::Key::Num9, 8),
+                ] {
+                    if ui.input(|i| i.key_pressed(key)) {
+                        if let Some(runtime) = &mut self.runtime {
+                            runtime.choose(index);
+                        }
+                    }
+                }
                 if ui.input(|i| i.key_pressed(egui::Key::Num1)) {
                     self.dialogue_choice = 0;
                 }
@@ -702,8 +719,11 @@ impl World {
                 box_rect.width() - 32.0,
             );
             p.galley(box_rect.min + egui::vec2(16.0, 12.0), text, Color32::BLACK);
-            if let Some(nodes) = self.runtime.as_ref().map(|_| &scene.dialogue_nodes) {
-                if let Some(node) = nodes.first() {
+            if let Some(runtime) = self.runtime.as_ref() {
+                if let Some(node) = runtime
+                    .dialogue_node
+                    .and_then(|i| scene.dialogue_nodes.get(i))
+                {
                     for (i, choice) in node.choices.iter().enumerate() {
                         p.text(
                             box_rect.left_top() + egui::vec2(18.0, 52.0 + i as f32 * 18.0),
