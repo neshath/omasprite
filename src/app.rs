@@ -103,40 +103,19 @@ impl StudioApp {
 
     fn topbar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.add_space(4.0);
-            ui.label(egui::RichText::new("▣").size(25.0).color(theme::LIME));
-            egui::Frame::default()
-                .fill(theme::HOT)
-                .stroke(egui::Stroke::new(1.0, theme::INK))
-                .rounding(egui::Rounding::same(3.0))
-                .inner_margin(egui::Margin::symmetric(12.0, 5.0))
-                .show(ui, |ui| {
-                    ui.label(egui::RichText::new("OMASPRITE v0.1.0").size(17.0).strong());
-                });
-            if ui
-                .add(egui::Button::new(egui::RichText::new("+").size(20.0)).fill(theme::PANEL))
-                .on_hover_text("Create a new workspace")
-                .clicked()
-            {
-                self.workspace = Workspace::World;
-                self.playing = false;
-            }
+            ui.add_space(8.0);
+            ui.label(egui::RichText::new("OMASPRITE").size(18.0).strong());
+            ui.label(egui::RichText::new("Game Editor Beta").color(theme::MUTED));
             ui.separator();
-            ui.label(
-                egui::RichText::new(self.workspace.label())
-                    .size(16.0)
-                    .color(theme::MUTED),
-            );
+            ui.label(egui::RichText::new(self.workspace.label()).color(theme::MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if ui.button("REFERENCE · F1").clicked() {
-                    self.reference_skin = true;
-                }
+                let play_label = if self.playing { "Stop" } else { "Play" };
                 if ui
-                    .button(if self.playing {
-                        "□  STOP"
+                    .add(egui::Button::new(play_label).fill(if self.playing {
+                        theme::PANEL_RAISED
                     } else {
-                        "▷  PLAY"
-                    })
+                        theme::HOT
+                    }))
                     .clicked()
                 {
                     self.playing = !self.playing;
@@ -145,11 +124,18 @@ impl StudioApp {
                     }
                     self.workspace = Workspace::World;
                 }
-                if ui.button("▱  DIALOGUE").clicked() {
-                    self.dialogue_open = !self.dialogue_open;
-                }
-                if ui.button("SAVE SCENE").clicked() {
+                if ui.button("Save").clicked() {
                     self.world.save();
+                }
+                if ui
+                    .button("Reference")
+                    .on_hover_text("Open the supplied reference artwork")
+                    .clicked()
+                {
+                    self.reference_skin = true;
+                }
+                if ui.button("Dialogue").clicked() {
+                    self.dialogue_open = !self.dialogue_open;
                 }
             });
         });
@@ -157,28 +143,32 @@ impl StudioApp {
 
     fn workspace_tabs(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
+            ui.add_space(8.0);
             for (w, label) in [
-                (Workspace::Sprite, "SPRITE"),
-                (Workspace::World, "WORLD"),
-                (Workspace::Logic, "LOGIC"),
-                (Workspace::Character, "CHARACTER"),
-                (Workspace::Effects, "FX"),
+                (Workspace::Sprite, "Sprite"),
+                (Workspace::World, "World"),
+                (Workspace::Logic, "Logic"),
+                (Workspace::Character, "Character"),
+                (Workspace::Effects, "Effects"),
             ] {
                 let selected = self.workspace == w;
-                let fill = if selected {
-                    theme::HOT
+                let response = ui.add(egui::Button::new(label).fill(if selected {
+                    theme::HOT_SOFT
                 } else {
-                    theme::PANEL_DEEP
-                };
-                if ui
-                    .add(egui::Button::new(egui::RichText::new(label).strong()).fill(fill))
-                    .clicked()
-                {
+                    Color32::TRANSPARENT
+                }));
+                if response.clicked() {
                     self.workspace = w;
                 }
             }
-            ui.separator();
-            ui.label(egui::RichText::new("GAME EDITOR BETA").color(theme::LIME));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.add_space(8.0);
+                ui.label(
+                    egui::RichText::new("F1  Reference")
+                        .small()
+                        .color(theme::MUTED),
+                );
+            });
         });
     }
 
@@ -550,27 +540,33 @@ impl StudioApp {
 
     fn bottom(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label(format!("FRAME {:02} / 60", self.frame));
-            if ui.button("◀").clicked() {
+            ui.label(egui::RichText::new(format!("Frame {} / 60", self.frame)).color(theme::MUTED));
+            if ui
+                .button("Previous")
+                .on_hover_text("Previous frame")
+                .clicked()
+            {
                 self.frame = self.frame.saturating_sub(1);
             }
-            if ui.button(if self.playing { "Ⅱ" } else { "▶" }).clicked() {
+            if ui
+                .button(if self.playing { "Pause" } else { "Play" })
+                .clicked()
+            {
                 self.playing = !self.playing;
                 if self.playing {
                     self.world.start();
                     self.workspace = Workspace::World;
                 }
             }
-            if ui.button("■").clicked() {
+            if ui.button("Stop").clicked() {
                 self.playing = false;
             }
-            if ui.button("▶").clicked() {
+            if ui.button("Next").on_hover_text("Next frame").clicked() {
                 self.frame = (self.frame + 1).min(60);
             }
             ui.separator();
-            ui.checkbox(&mut self.dialogue_open, "DIALOGUE PREVIEW");
-            ui.separator();
-            ui.checkbox(&mut self.onion_skin, "ONION SKIN");
+            ui.checkbox(&mut self.dialogue_open, "Dialogue preview");
+            ui.checkbox(&mut self.onion_skin, "Onion skin");
             ui.separator();
             ui.label("ZOOM");
             ui.add(
@@ -637,13 +633,17 @@ impl eframe::App for StudioApp {
             ctx.request_repaint_after(std::time::Duration::from_millis(16));
         }
         egui::TopBottomPanel::top("topbar")
-            .frame(egui::Frame::default().fill(theme::BG).inner_margin(10.0))
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::BG)
+                    .inner_margin(egui::Margin::symmetric(10.0, 8.0)),
+            )
             .show(ctx, |ui| self.topbar(ui));
         egui::TopBottomPanel::bottom("status")
             .frame(
                 egui::Frame::default()
                     .fill(theme::PANEL_DEEP)
-                    .inner_margin(8.0),
+                    .inner_margin(egui::Margin::symmetric(10.0, 7.0)),
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
@@ -662,31 +662,45 @@ impl eframe::App for StudioApp {
             .frame(
                 egui::Frame::default()
                     .fill(theme::PANEL_DEEP)
-                    .inner_margin(8.0),
+                    .inner_margin(egui::Margin::symmetric(6.0, 5.0)),
             )
             .show(ctx, |ui| self.workspace_tabs(ui));
         egui::SidePanel::right("inspector")
             .resizable(true)
-            .default_width(300.0)
-            .frame(egui::Frame::default().fill(theme::PANEL).inner_margin(12.0))
+            .default_width(312.0)
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::PANEL)
+                    .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
+            )
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui::tools_panel(ui, self);
-                    ui.collapsing("Keyboard & accessibility", |ui| {
+                    ui.collapsing("Keyboard and accessibility", |ui| {
                         ui.label(format!("Play: {} · Stop: Escape", self.keyboard.play));
                         ui.label(format!("Move: {}/{}/{}/{} · Talk: {}", self.keyboard.up, self.keyboard.down, self.keyboard.left, self.keyboard.right, self.keyboard.interact));
                         ui.label(format!("{} labelled regions · contrast {} · keyboard audit {}", self.accessibility.labels.len(), if self.accessibility.contrast_checked { "checked" } else { "pending" }, if self.accessibility.keyboard_complete { "complete" } else { "in progress" }));
                         ui.label("Tab moves between controls. Space activates Play. Number keys select dialogue choices.");
                     });
-                    ui.collapsing("Extended workspace settings", |ui| {
+                    ui.collapsing("Workspace settings", |ui| {
                         ui::inspector_panel(ui, self)
                     });
                 });
             });
         egui::CentralPanel::default()
-            .frame(egui::Frame::default().fill(theme::BG).inner_margin(12.0))
+            .frame(
+                egui::Frame::default()
+                    .fill(theme::BG)
+                    .inner_margin(egui::Margin::symmetric(16.0, 12.0)),
+            )
             .show(ctx, |ui| {
-                egui::TopBottomPanel::bottom("transport").show_inside(ui, |ui| self.bottom(ui));
+                egui::TopBottomPanel::bottom("transport")
+                    .frame(
+                        egui::Frame::default()
+                            .fill(theme::PANEL_DEEP)
+                            .inner_margin(egui::Margin::symmetric(8.0, 6.0)),
+                    )
+                    .show_inside(ui, |ui| self.bottom(ui));
                 self.canvas(ui);
             });
     }

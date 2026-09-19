@@ -5,19 +5,20 @@ use crate::{
 };
 use eframe::egui::{self, Align, Color32, Layout};
 
-pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
+fn section_heading(ui: &mut egui::Ui, title: &str) {
+    ui.add_space(10.0);
     ui.label(
-        egui::RichText::new("TOOLS & GFX")
-            .size(18.0)
+        egui::RichText::new(title)
+            .size(13.0)
             .strong()
-            .color(theme::INK),
-    );
-    ui.label(
-        egui::RichText::new("DRAW · BUILD · LIGHT")
-            .small()
             .color(theme::MUTED),
     );
-    ui.add_space(6.0);
+}
+
+pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
+    ui.label(egui::RichText::new("Inspector").size(20.0).strong());
+    ui.label(egui::RichText::new("Build your scene one decision at a time.").color(theme::MUTED));
+    section_heading(ui, "Tools");
     for row in [
         [Tool::Pencil, Tool::Fill, Tool::Eraser],
         [Tool::Select, Tool::Stamp, Tool::Light],
@@ -28,12 +29,12 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
                 let selected = app.tool == tool;
                 if ui
                     .add_sized(
-                        [58.0, 40.0],
-                        egui::Button::new(egui::RichText::new(tool.icon()).size(21.0)).fill(
+                        [82.0, 40.0],
+                        egui::Button::new(egui::RichText::new(tool.label()).size(11.0)).fill(
                             if selected {
                                 theme::HOT
                             } else {
-                                theme::PANEL_DEEP
+                                theme::PANEL_RAISED
                             },
                         ),
                     )
@@ -46,7 +47,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         });
     }
     ui.separator();
-    ui.label(egui::RichText::new("PALETTE").size(18.0).strong());
+    section_heading(ui, "Palette");
     let colors = [
         theme::HOT,
         theme::VIOLET,
@@ -71,25 +72,24 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         }
     });
     ui.separator();
-    ui.label(
-        egui::RichText::new("LAYERS / MAP STACK")
-            .size(18.0)
-            .strong(),
-    );
+    section_heading(ui, "Layers");
     for (i, layer) in ["BG", "COLLISION", "MAIN CHAR", "SIDE CHAR"]
         .iter()
         .enumerate()
     {
         let selected = app.selected_layer == i;
         if ui
-            .selectable_label(selected, format!("◉  {}", layer))
+            .selectable_label(
+                selected,
+                format!("{}  {}", if selected { "●" } else { "○" }, layer),
+            )
             .clicked()
         {
             app.selected_layer = i;
         }
     }
     ui.separator();
-    ui.label(egui::RichText::new("GFX / TILE SHELF").size(18.0).strong());
+    section_heading(ui, "Assets");
     ui.horizontal_wrapped(|ui| {
         for (label, color) in [
             ("HERO", theme::HOT),
@@ -105,13 +105,13 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         }
     });
     ui.add_space(10.0);
-    ui.label(egui::RichText::new("LEVEL PROGRESS").strong());
+    section_heading(ui, "Creator progress");
     ui.add(
         egui::ProgressBar::new(app.project.level as f32 / 20.0)
             .text(format!("LEVEL {}", app.project.level)),
     );
     ui.label(
-        egui::RichText::new("Next unlock: lighting & shadows")
+        egui::RichText::new("Next: lighting and shadows")
             .small()
             .color(theme::MUTED),
     );
@@ -119,7 +119,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
 
 pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new("PROJECT").size(16.0).strong());
+        ui.label(egui::RichText::new("Project").size(15.0).strong());
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ui.label("v0.1.0");
         });
@@ -132,7 +132,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
     );
     ui.separator();
     if app.workspace == Workspace::World {
-        ui.label(egui::RichText::new("MAP SETUP").size(16.0).strong());
+        section_heading(ui, "Map");
         for style in [MapStyle::Overworld, MapStyle::Town, MapStyle::Interior] {
             if ui
                 .selectable_label(app.map_style == style, style.label())
@@ -149,7 +149,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         ui.separator();
     }
     if app.workspace == Workspace::Character {
-        ui.label(egui::RichText::new("CHARACTER SETUP").size(16.0).strong());
+        section_heading(ui, "Character");
         ui.text_edit_singleline(&mut app.character_name);
         for item in [
             "Direction set: 8-way",
@@ -161,7 +161,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         ui.separator();
     }
     if app.workspace == Workspace::Effects {
-        ui.label(egui::RichText::new("LIGHTING & FX").size(16.0).strong());
+        section_heading(ui, "Lighting and effects");
         ui.checkbox(&mut app.lighting_enabled, "Pixel lighting");
         ui.checkbox(&mut app.shadows_enabled, "Cast sprite shadows");
         ui.add(egui::Slider::new(&mut app.ambient, 0.0..=1.0).text("Ambient"));
@@ -170,7 +170,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         ui.label(egui::RichText::new("Planned: palette-aware normal maps, weather presets, bloom, and GPU shader graphs.").small().color(theme::MUTED));
         ui.separator();
     }
-    ui.label(egui::RichText::new("DIALOGUE BOX").size(16.0).strong());
+    section_heading(ui, "Dialogue");
     ui.checkbox(&mut app.dialogue_open, "Preview in scene");
     ui.horizontal(|ui| {
         ui.label("Speaker");
@@ -186,7 +186,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         .color(theme::MUTED),
     );
     ui.separator();
-    ui.label(egui::RichText::new("ASSETS / SPRITES").size(16.0).strong());
+    section_heading(ui, "Project assets");
     for asset in [
         "hero_idle.png",
         "hero_walk.png",
@@ -200,7 +200,7 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         });
     }
     ui.separator();
-    ui.label(egui::RichText::new("UNLOCK PATH").size(16.0).strong());
+    section_heading(ui, "Unlock path");
     for (level, title, detail) in LEVELS.iter() {
         let unlocked = app.project.level >= *level;
         ui.horizontal(|ui| {
@@ -222,6 +222,6 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         });
     }
     ui.separator();
-    ui.label(egui::RichText::new("QUICK TIP").size(16.0).strong());
-    ui.label("Paint a sprite, then press PLAY. OMARCHY reveals the next tool when your game is ready for it.");
+    section_heading(ui, "Next step");
+    ui.label("Paint a sprite, then press Play. New tools appear as your game grows.");
 }

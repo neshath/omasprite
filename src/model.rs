@@ -52,20 +52,6 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub fn icon(self) -> &'static str {
-        match self {
-            Self::Pencil => "✎",
-            Self::Fill => "▧",
-            Self::Eraser => "⌫",
-            Self::Select => "□",
-            Self::Stamp => "✦",
-            Self::Light => "☼",
-            Self::Shadow => "◐",
-            Self::Path => "⌁",
-            Self::Particle => "✹",
-        }
-    }
-
     pub fn label(self) -> &'static str {
         match self {
             Self::Pencil => "Pencil",
