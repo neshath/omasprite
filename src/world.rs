@@ -110,6 +110,7 @@ pub struct World {
     talking: bool,
     dialogue_choice: usize,
     history: Vec<Scene>,
+    camera: crate::tilemap::Camera,
 }
 impl Default for World {
     fn default() -> Self {
@@ -140,6 +141,7 @@ impl Default for World {
             talking: false,
             dialogue_choice: 0,
             history: vec![],
+            camera: crate::tilemap::Camera::new([16.0, 12.0]),
         }
     }
 }
@@ -393,6 +395,7 @@ impl World {
                     "Remove portal",
                     "Collision",
                     "Light",
+                    "Stamp",
                 ]
                 .iter()
                 .enumerate()
@@ -460,6 +463,8 @@ impl World {
             }
             if let Some(runtime) = &mut self.runtime {
                 self.player = runtime.state.position;
+                self.camera
+                    .follow([self.player[0] as f32, self.player[1] as f32], [16, 16]);
                 self.talking = runtime.page.is_some();
                 ui.label(format!(
                     "Map: {}   Player: {:?}   Objective: {}",
@@ -470,6 +475,10 @@ impl World {
                     } else {
                         "pending"
                     }
+                ));
+                ui.label(format!(
+                    "Camera: {:.1}, {:.1}",
+                    self.camera.center[0], self.camera.center[1]
                 ));
                 if let Some(store) = &self.project_store {
                     ui.horizontal(|ui| {
@@ -542,6 +551,17 @@ impl World {
                         9 => self.scene.portals.retain(|p| p.at != xy),
                         10 => self.scene.collision[idx] = !self.scene.collision[idx],
                         11 => self.scene.light = xy,
+                        12 => {
+                            let stamp = crate::tilemap::TileStamp {
+                                width: 2,
+                                height: 2,
+                                tiles: vec![1, 1, 1, 1],
+                                collision: vec![false; 4],
+                            };
+                            if let Err(e) = stamp.apply(&mut self.scene, xy) {
+                                self.status = e;
+                            }
+                        }
                         _ => {
                             self.scene.tiles[idx] = self.brush;
                             self.scene.heights[idx] = self.elevation;
