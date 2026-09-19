@@ -24,6 +24,8 @@ pub struct Scene {
     pub npcs: Vec<[usize; 2]>,
     pub spawn: [usize; 2],
     pub dialogue: String,
+    #[serde(default)]
+    pub dialogue_nodes: Vec<crate::advanced::DialogueNode>,
     pub ambient: f32,
 }
 fn default_collision() -> Vec<bool> {
@@ -51,6 +53,7 @@ impl Default for Scene {
             npcs: vec![[8, 7]],
             spawn: [8, 9],
             dialogue: "Welcome! Build your village and tell its story.".into(),
+            dialogue_nodes: vec![],
             ambient: 0.85,
         }
     }
@@ -75,6 +78,7 @@ impl Scene {
             || self.npc.iter().chain(self.spawn.iter()).any(|v| *v >= 16)
             || self.npcs.iter().any(|n| n.iter().any(|v| *v >= 16))
             || !self.ambient.is_finite()
+            || crate::advanced::validate_dialogue(&self.dialogue_nodes).is_err()
             || !(0.2..=1.0).contains(&self.ambient)
         {
             return Err("Invalid scene data".into());
@@ -104,6 +108,7 @@ pub struct World {
     elevation: u8,
     player: [usize; 2],
     talking: bool,
+    dialogue_choice: usize,
     history: Vec<Scene>,
 }
 impl Default for World {
@@ -133,6 +138,7 @@ impl Default for World {
             elevation: 0,
             player: [8, 9],
             talking: false,
+            dialogue_choice: 0,
             history: vec![],
         }
     }
@@ -428,6 +434,12 @@ impl World {
                         runtime.interact();
                     }
                 }
+                if ui.input(|i| i.key_pressed(egui::Key::Num1)) {
+                    self.dialogue_choice = 0;
+                }
+                if ui.input(|i| i.key_pressed(egui::Key::Num2)) {
+                    self.dialogue_choice = 1;
+                }
             }
             if let Some(runtime) = &mut self.runtime {
                 self.player = runtime.state.position;
@@ -690,6 +702,19 @@ impl World {
                 box_rect.width() - 32.0,
             );
             p.galley(box_rect.min + egui::vec2(16.0, 12.0), text, Color32::BLACK);
+            if let Some(nodes) = self.runtime.as_ref().map(|_| &scene.dialogue_nodes) {
+                if let Some(node) = nodes.first() {
+                    for (i, choice) in node.choices.iter().enumerate() {
+                        p.text(
+                            box_rect.left_top() + egui::vec2(18.0, 52.0 + i as f32 * 18.0),
+                            egui::Align2::LEFT_TOP,
+                            format!("{}. {}", i + 1, choice.label),
+                            egui::FontId::proportional(14.0),
+                            Color32::DARK_GRAY,
+                        );
+                    }
+                }
+            }
         }
     }
 }

@@ -1,24 +1,13 @@
-APP := omarchy-studio
 PREFIX ?= $(HOME)/.local
+BINDIR ?= $(PREFIX)/bin
+DATADIR ?= $(PREFIX)/share
 
-.PHONY: build release run check test fmt clippy install uninstall
-build:
-	cargo build --locked
-release:
-	cargo build --release --locked
-run:
-	cargo run --locked
-check:
-	cargo check --locked
-test:
-	cargo test --locked
-fmt:
-	cargo fmt --all -- --check
-clippy:
-	cargo clippy --locked --all-targets --all-features -- -D warnings
-install: release
-	install -Dm755 target/release/$(APP) $(PREFIX)/bin/$(APP)
-	install -Dm644 packaging/omarchy-studio.desktop $(PREFIX)/share/applications/omarchy-studio.desktop
-	install -Dm644 assets/omarchy-studio.svg $(PREFIX)/share/icons/hicolor/scalable/apps/omarchy-studio.svg
+.PHONY: install uninstall
+install:
+	mkdir -p "$(BINDIR)" "$(DATADIR)/applications" "$(DATADIR)/icons/hicolor/scalable/apps"
+	cargo install --path . --root /tmp/omasprite-install --locked
+	cp /tmp/omasprite-install/bin/omarchy-studio "$(BINDIR)/omarchy-studio"
+	cp packaging/omarchy-studio.desktop "$(DATADIR)/applications/omarchy-studio.desktop"
+
 uninstall:
-	rm -f $(PREFIX)/bin/$(APP) $(PREFIX)/share/applications/omarchy-studio.desktop $(PREFIX)/share/icons/hicolor/scalable/apps/omarchy-studio.svg
+	rm -f "$(BINDIR)/omarchy-studio" "$(DATADIR)/applications/omarchy-studio.desktop"

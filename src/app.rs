@@ -24,6 +24,9 @@ pub struct StudioApp {
     pub light_radius: f32,
     pub particle_amount: f32,
     pub character_name: String,
+    pub logic_nodes: Vec<crate::advanced::LogicNode>,
+    pub keyboard: crate::advanced::KeyboardBindings,
+    pub accessibility: crate::advanced::AccessibilityAudit,
 }
 
 impl StudioApp {
@@ -52,6 +55,31 @@ impl StudioApp {
             light_radius: 0.65,
             particle_amount: 0.25,
             character_name: "Hero / winter outfit".into(),
+            logic_nodes: vec![crate::advanced::LogicNode {
+                id: "start".into(),
+                kind: "event".into(),
+                inputs: vec![],
+                outputs: vec!["next".into()],
+            }],
+            keyboard: crate::advanced::KeyboardBindings {
+                up: "ArrowUp".into(),
+                down: "ArrowDown".into(),
+                left: "ArrowLeft".into(),
+                right: "ArrowRight".into(),
+                interact: "Enter".into(),
+                play: "Space".into(),
+            },
+            accessibility: crate::advanced::AccessibilityAudit {
+                labels: vec![
+                    "topbar".into(),
+                    "workspace tabs".into(),
+                    "canvas".into(),
+                    "inspector".into(),
+                    "transport".into(),
+                ],
+                keyboard_complete: false,
+                contrast_checked: true,
+            },
         }
     }
 
@@ -127,6 +155,7 @@ impl StudioApp {
             self.world.show(ui, self.playing);
             return;
         }
+        self.authoring_controls(ui);
         let available = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(available.x, available.y.max(410.0)),
@@ -154,6 +183,43 @@ impl StudioApp {
                 (1.0, theme::LIME),
             );
         }
+    }
+
+    fn authoring_controls(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal_wrapped(|ui| match self.workspace {
+            Workspace::Logic => {
+                ui.label("LOGIC GRAPH");
+                if ui.button("+ Event node").clicked() {
+                    let id = format!("event-{}", self.logic_nodes.len());
+                    self.logic_nodes.push(crate::advanced::LogicNode {
+                        id,
+                        kind: "event".into(),
+                        inputs: vec![],
+                        outputs: vec!["next".into()],
+                    });
+                }
+                if ui.button("Export Lua").clicked() {
+                    self.dialogue_text = crate::advanced::lua_export(&self.logic_nodes);
+                }
+                ui.label(format!(
+                    "{} nodes · deterministic preview",
+                    self.logic_nodes.len()
+                ));
+            }
+            Workspace::Character => {
+                ui.label("DIRECTIONS");
+                for direction in ["UP", "DOWN", "LEFT", "RIGHT"] {
+                    ui.selectable_label(true, direction);
+                }
+                ui.label("IDLE / WALK / TALK");
+            }
+            Workspace::Effects => {
+                ui.label("EMITTER");
+                ui.add(egui::Slider::new(&mut self.particle_amount, 0.0..=1.0).text("rate"));
+                ui.checkbox(&mut self.shadows_enabled, "Palette shadows");
+            }
+            _ => {}
+        });
     }
 
     fn sprite_canvas(&self, painter: &egui::Painter, scene: egui::Rect) {
@@ -474,6 +540,17 @@ impl StudioApp {
 
 impl eframe::App for StudioApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.input(|input| {
+            if input.key_pressed(egui::Key::Space) && !ctx.wants_keyboard_input() {
+                self.playing = !self.playing;
+                if self.playing {
+                    self.world.start();
+                }
+            }
+            if input.key_pressed(egui::Key::Escape) {
+                self.playing = false;
+            }
+        });
         if self.playing {
             self.frame = (self.frame + 1) % 60;
             ctx.request_repaint_after(std::time::Duration::from_millis(90));
