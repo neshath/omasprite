@@ -22,7 +22,7 @@ Play the included original fixture with `cargo run --locked -- --play examples/s
 
 ![OMARCHY Studio reference preview](assets/omarchy-studio-reference.png)
 
-The app opens in an exact-reference skin rendered directly from the supplied canonical image. Press **F1** (or click the top-left logo region) to switch to the live functional editor; press F1 again to compare against the visual target.
+The app opens in the functional editor. **F1** opens a clearly labeled reference-image viewer using the supplied canonical artwork; F1 returns to editing. The reference image is not an interactive editor or evidence of visual parity.
 
 OMASPRITE is the native, open-source pixel game editor for Omarchy Linux. It is designed to grow with the creator: a child can start with a pencil and Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
 

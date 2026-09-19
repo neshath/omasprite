@@ -110,6 +110,8 @@ pub struct World {
     brush: u8,
     elevation: u8,
     player: [usize; 2],
+    visual_player: [f32; 2],
+    step_cooldown: f32,
     talking: bool,
     dialogue_choice: usize,
     history: Vec<Scene>,
@@ -143,6 +145,8 @@ impl Default for World {
             brush: 0,
             elevation: 0,
             player: [8, 9],
+            visual_player: [8.0, 9.0],
+            step_cooldown: 0.0,
             talking: false,
             dialogue_choice: 0,
             history: vec![],
@@ -224,6 +228,8 @@ impl World {
     pub fn start(&mut self) {
         self.runtime = None;
         self.player = self.scene.spawn;
+        self.visual_player = self.player.map(|v| v as f32);
+        self.step_cooldown = 0.0;
         self.talking = false;
         let mut maps = std::collections::BTreeMap::new();
         if let Some(store) = &self.project_store {
@@ -432,6 +438,10 @@ impl World {
             });
         } else {
             ui.label("Arrow keys: walk • Enter: talk / next page • STOP: return to editor");
+            let dt = ui.input(|i| i.stable_dt).clamp(0.0, 0.05);
+            self.step_cooldown = (self.step_cooldown - dt).max(0.0);
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(16));
             if !ui.ctx().wants_keyboard_input() {
                 for (key, dx, dy) in [
                     (egui::Key::ArrowLeft, -1, 0),
@@ -439,10 +449,18 @@ impl World {
                     (egui::Key::ArrowUp, 0, -1),
                     (egui::Key::ArrowDown, 0, 1),
                 ] {
-                    if ui.input(|i| i.key_pressed(key)) {
+                    if self.step_cooldown <= 0.0
+                        && ui.input(|i| i.key_down(key) || i.key_pressed(key))
+                    {
                         if let Some(runtime) = &mut self.runtime {
+                            let previous_map = runtime.state.map.clone();
                             runtime.step(dx, dy);
+                            if previous_map != runtime.state.map {
+                                self.visual_player = runtime.state.position.map(|v| v as f32);
+                            }
                         }
+                        self.step_cooldown = 0.14;
+                        break;
                     }
                 }
                 if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
@@ -476,14 +494,14 @@ impl World {
             }
             if let Some(runtime) = &mut self.runtime {
                 self.player = runtime.state.position;
-                self.camera.smooth_follow(
-                    [self.player[0] as f32, self.player[1] as f32],
-                    [16, 16],
-                    10.0,
-                    1.0 / 60.0,
-                );
-                self.particles.update(&self.weather, 1.0 / 60.0);
-                self.talking = runtime.page.is_some();
+                for axis in 0..2 {
+                    let delta = self.player[axis] as f32 - self.visual_player[axis];
+                    self.visual_player[axis] += delta.clamp(-dt / 0.14, dt / 0.14);
+                }
+                self.camera
+                    .smooth_follow(self.visual_player, [16, 16], 10.0, dt);
+                self.particles.update(&self.weather, dt);
+                self.talking = runtime.page.is_some() || runtime.dialogue_node.is_some();
                 ui.label(format!(
                     "Map: {}   Player: {:?}   Objective: {}",
                     runtime.state.map,
@@ -691,7 +709,14 @@ impl World {
                 ));
                 for (xy, col) in actors {
                     if xy == [x, y] {
-                        let foot = top.center();
+                        let is_player = col == Color32::from_rgb(224, 67, 135);
+                        let mut foot = top.center();
+                        if playing && is_player {
+                            foot += egui::vec2(
+                                (self.visual_player[0] - xy[0] as f32) * unit,
+                                (self.visual_player[1] - xy[1] as f32) * unit * 0.55,
+                            );
+                        }
                         if col == Color32::from_rgb(224, 67, 135)
                             && scene
                                 .sprite
@@ -705,7 +730,16 @@ impl World {
                                     as usize;
                                 self.runtime
                                     .as_ref()
-                                    .and_then(|r| scene.character.frame(r.direction, true, tick))
+                                    .and_then(|r| {
+                                        scene.character.frame(
+                                            r.direction,
+                                            self.visual_player
+                                                .iter()
+                                                .zip(self.player)
+                                                .any(|(a, b)| (*a - b as f32).abs() > 0.001),
+                                            tick,
+                                        )
+                                    })
                                     .unwrap_or(tick)
                             } else {
                                 0

@@ -27,8 +27,7 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default()
             .with_title("OMASPRITE")
             .with_inner_size([1350.0, 784.0])
-            .with_min_inner_size([1012.5, 588.0])
-            .with_decorations(false),
+            .with_min_inner_size([1012.5, 588.0]),
         ..Default::default()
     };
 

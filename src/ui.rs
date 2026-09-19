@@ -6,7 +6,17 @@ use crate::{
 use eframe::egui::{self, Align, Color32, Layout};
 
 pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
-    ui.label(egui::RichText::new("TOOLS & GFX").size(16.0).strong());
+    ui.label(
+        egui::RichText::new("TOOLS & GFX")
+            .size(18.0)
+            .strong()
+            .color(theme::INK),
+    );
+    ui.label(
+        egui::RichText::new("DRAW · BUILD · LIGHT")
+            .small()
+            .color(theme::MUTED),
+    );
     ui.add_space(6.0);
     for row in [
         [Tool::Pencil, Tool::Fill, Tool::Eraser],
@@ -18,12 +28,12 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
                 let selected = app.tool == tool;
                 if ui
                     .add_sized(
-                        [54.0, 42.0],
-                        egui::Button::new(egui::RichText::new(tool.icon()).size(22.0)).fill(
+                        [58.0, 40.0],
+                        egui::Button::new(egui::RichText::new(tool.icon()).size(21.0)).fill(
                             if selected {
                                 theme::HOT
                             } else {
-                                Color32::TRANSPARENT
+                                theme::PANEL_DEEP
                             },
                         ),
                     )
@@ -36,7 +46,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         });
     }
     ui.separator();
-    ui.label(egui::RichText::new("PALETTE").size(16.0).strong());
+    ui.label(egui::RichText::new("PALETTE").size(18.0).strong());
     let colors = [
         theme::HOT,
         theme::VIOLET,
@@ -56,14 +66,14 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
             ui.add(
                 egui::Button::new("  ")
                     .fill(c)
-                    .min_size(egui::vec2(27.0, 24.0)),
+                    .min_size(egui::vec2(29.0, 24.0)),
             );
         }
     });
     ui.separator();
     ui.label(
         egui::RichText::new("LAYERS / MAP STACK")
-            .size(16.0)
+            .size(18.0)
             .strong(),
     );
     for (i, layer) in ["BG", "COLLISION", "MAIN CHAR", "SIDE CHAR"]
@@ -79,7 +89,7 @@ pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
         }
     }
     ui.separator();
-    ui.label(egui::RichText::new("GFX / TILE SHELF").size(16.0).strong());
+    ui.label(egui::RichText::new("GFX / TILE SHELF").size(18.0).strong());
     ui.horizontal_wrapped(|ui| {
         for (label, color) in [
             ("HERO", theme::HOT),

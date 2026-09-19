@@ -52,7 +52,7 @@ impl StudioApp {
             egui::TextureOptions::NEAREST,
         );
         Self {
-            reference_skin: true,
+            reference_skin: false,
             reference_texture,
             world: crate::world::World::default(),
             project: Project::default(),
@@ -104,11 +104,33 @@ impl StudioApp {
     fn topbar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.add_space(4.0);
-            ui.label(egui::RichText::new("▣").size(26.0).color(theme::LIME));
-            ui.label(egui::RichText::new("OMASPRITE").size(18.0).strong());
+            ui.label(egui::RichText::new("▣").size(25.0).color(theme::LIME));
+            egui::Frame::default()
+                .fill(theme::HOT)
+                .stroke(egui::Stroke::new(1.0, theme::INK))
+                .rounding(egui::Rounding::same(3.0))
+                .inner_margin(egui::Margin::symmetric(12.0, 5.0))
+                .show(ui, |ui| {
+                    ui.label(egui::RichText::new("OMASPRITE v0.1.0").size(17.0).strong());
+                });
+            if ui
+                .add(egui::Button::new(egui::RichText::new("+").size(20.0)).fill(theme::PANEL))
+                .on_hover_text("Create a new workspace")
+                .clicked()
+            {
+                self.workspace = Workspace::World;
+                self.playing = false;
+            }
             ui.separator();
-            ui.label(egui::RichText::new(self.workspace.label()).color(theme::MUTED));
+            ui.label(
+                egui::RichText::new(self.workspace.label())
+                    .size(16.0)
+                    .color(theme::MUTED),
+            );
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if ui.button("REFERENCE · F1").clicked() {
+                    self.reference_skin = true;
+                }
                 if ui
                     .button(if self.playing {
                         "□  STOP"
@@ -534,6 +556,10 @@ impl StudioApp {
             }
             if ui.button(if self.playing { "Ⅱ" } else { "▶" }).clicked() {
                 self.playing = !self.playing;
+                if self.playing {
+                    self.world.start();
+                    self.workspace = Workspace::World;
+                }
             }
             if ui.button("■").clicked() {
                 self.playing = false;
@@ -608,7 +634,7 @@ impl eframe::App for StudioApp {
         });
         if self.playing {
             self.frame = (self.frame + 1) % 60;
-            ctx.request_repaint_after(std::time::Duration::from_millis(90));
+            ctx.request_repaint_after(std::time::Duration::from_millis(16));
         }
         egui::TopBottomPanel::top("topbar")
             .frame(egui::Frame::default().fill(theme::BG).inner_margin(10.0))

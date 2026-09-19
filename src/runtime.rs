@@ -62,7 +62,7 @@ impl Runtime {
         &self.maps[&self.state.map]
     }
     pub fn step(&mut self, dx: i32, dy: i32) -> bool {
-        if self.page.is_some() || dx.abs() + dy.abs() != 1 {
+        if self.page.is_some() || self.dialogue_node.is_some() || dx.abs() + dy.abs() != 1 {
             return false;
         }
         self.direction = [dx, dy];
@@ -337,9 +337,14 @@ mod tests {
         assert!(runtime.step(0, -1));
         runtime.interact();
         assert_eq!(runtime.line(), Some("Choose."));
+        let before = runtime.state.position;
+        assert!(!runtime.step(1, 0));
+        assert_eq!(runtime.state.position, before);
         assert!(runtime.choose(0));
         assert_eq!(runtime.line(), Some("Done."));
         assert!(runtime.log.iter().any(|line| line == "Hook: open"));
         assert!(runtime.log.iter().any(|line| line == "Hook: finish"));
+        runtime.interact();
+        assert!(runtime.step(1, 0));
     }
 }
