@@ -1,5 +1,16 @@
 # Roadmap
 
+## Engineering milestones (acceptance takes precedence)
+
+- M0: repository audit and reference technical specification.
+- M1: project folders, validated save/open and persistence tests; live workflow acceptance pending.
+- M2–4: pixel renderer, camera, independent collision, smooth player/animation.
+- M5–7: generic entities, multi-page dialogue, linked scenes.
+- M8–10: sprite editing, animation, scene inspector and isolated play controls.
+- M11–12: original village/path/interior game, objective, game saves and live acceptance.
+
+The historical checkboxes below describe preview panels, not completion of these engineering milestones.
+
 ## Game Editor Beta — current
 
 - [x] Native editor shell and project status.

@@ -2,7 +2,7 @@
 use egui::{self, Color32, Rect, Sense, Vec2};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Scene {
     pub version: u32,
     pub tiles: Vec<u8>,
@@ -45,6 +45,11 @@ impl Scene {
     }
 }
 pub struct World {
+    project_store: Option<crate::project::ProjectStore>,
+    project_folder: String,
+    project_name: String,
+    saved_scene: Option<Scene>,
+    discard_confirmed: bool,
     pub scene: Scene,
     pub path: String,
     pub status: String,
@@ -57,6 +62,17 @@ pub struct World {
 impl Default for World {
     fn default() -> Self {
         Self {
+            project_store: None,
+            project_folder: std::env::var_os("HOME")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(std::env::temp_dir)
+                .join("Documents")
+                .join("my-omasprite-game")
+                .display()
+                .to_string(),
+            project_name: "Untitled".into(),
+            saved_scene: None,
+            discard_confirmed: false,
             scene: Scene::default(),
             path: "scene.omasprite.json".into(),
             status: "New unsaved scene".into(),
@@ -69,6 +85,47 @@ impl Default for World {
     }
 }
 impl World {
+    pub fn project_label(&self) -> String {
+        let name = self
+            .project_store
+            .as_ref()
+            .map(|s| s.manifest.name.as_str())
+            .unwrap_or("Untitled");
+        format!(
+            "{} · {}",
+            name,
+            if self.saved_scene.as_ref() == Some(&self.scene) {
+                "saved"
+            } else {
+                "unsaved"
+            }
+        )
+    }
+    fn project_action(&mut self, create: bool) {
+        if self.saved_scene.as_ref() != Some(&self.scene) && !self.discard_confirmed {
+            self.status =
+                "Unsaved scene: save it or check Discard unsaved edits before switching.".into();
+            return;
+        }
+        let root = std::path::Path::new(&self.project_folder);
+        let result = if create {
+            crate::project::ProjectStore::create(root, &self.project_name)
+        } else {
+            crate::project::ProjectStore::open(root)
+        };
+        match result {
+            Ok((store, scene)) => {
+                self.scene = scene;
+                self.saved_scene = Some(self.scene.clone());
+                self.project_store = Some(store);
+                self.history.clear();
+                self.start();
+                self.discard_confirmed = false;
+                self.status = "Project ready".into();
+            }
+            Err(e) => self.status = e,
+        }
+    }
     pub fn from_file(path: String) -> Self {
         let mut world = Self {
             path,
@@ -92,6 +149,7 @@ impl World {
         match result {
             Ok(s) => {
                 self.scene = s;
+                self.saved_scene = Some(self.scene.clone());
                 self.history.clear();
                 self.start();
                 self.status = "Scene loaded".into();
@@ -100,6 +158,17 @@ impl World {
         }
     }
     pub fn save(&mut self) {
+        if let Some(store) = self.project_store.as_mut() {
+            let id = store.manifest.entry_scene.clone();
+            match store.save_scene(&id, &self.scene) {
+                Ok(()) => {
+                    self.saved_scene = Some(self.scene.clone());
+                    self.status = "Project saved".into();
+                }
+                Err(e) => self.status = e,
+            }
+            return;
+        }
         let result = self
             .scene
             .validate()
@@ -111,26 +180,58 @@ impl World {
                     .map_err(|e| e.to_string())
             });
         self.status = match result {
-            Ok(()) => "Scene saved. Share this JSON with another Omasprite installation.".into(),
+            Ok(()) => {
+                self.saved_scene = Some(self.scene.clone());
+                "Scene saved. Share this JSON with another Omasprite installation.".into()
+            }
             Err(e) => e,
         };
     }
     pub fn show(&mut self, ui: &mut egui::Ui, playing: bool) {
-        ui.horizontal_wrapped(|ui| {
-            ui.label("Scene file");
-            ui.text_edit_singleline(&mut self.path);
-            if ui.button("Open").clicked() {
-                self.load();
-            }
-            if ui.button("Save scene").clicked() {
-                self.save();
-            }
-            if ui.button("Undo paint").clicked() {
-                if let Some(s) = self.history.pop() {
-                    self.scene = s;
+        if !playing {
+            ui.collapsing("Project · New / Open / Save", |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("New folder / existing project folder");
+                    ui.text_edit_singleline(&mut self.project_folder);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Name");
+                    ui.text_edit_singleline(&mut self.project_name);
+                });
+                ui.checkbox(
+                    &mut self.discard_confirmed,
+                    "Discard unsaved edits when creating/opening",
+                );
+                ui.horizontal(|ui| {
+                    if ui.button("New project").clicked() {
+                        self.project_action(true);
+                    }
+                    if ui.button("Open project").clicked() {
+                        self.project_action(false);
+                    }
+                    if ui.button("Save project").clicked() {
+                        self.save();
+                    }
+                });
+            });
+        }
+        if !playing && self.project_store.is_none() {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Scene file");
+                ui.text_edit_singleline(&mut self.path);
+                if ui.button("Open").clicked() {
+                    self.load();
                 }
-            }
-        });
+                if ui.button("Save scene").clicked() {
+                    self.save();
+                }
+                if ui.button("Undo paint").clicked() {
+                    if let Some(s) = self.history.pop() {
+                        self.scene = s;
+                    }
+                }
+            });
+        }
         if !playing {
             ui.horizontal_wrapped(|ui| {
                 for (i, n) in ["Snow", "Path", "Water", "Tree", "Building", "NPC", "Spawn"]

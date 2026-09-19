@@ -476,15 +476,7 @@ impl eframe::App for StudioApp {
                         egui::RichText::new("MAKE GAMES. PIXEL BY PIXEL.").color(theme::MUTED),
                     );
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.label(format!(
-                            "PROJECT: {}  ·  {}",
-                            self.project.name.to_uppercase(),
-                            if self.project.saved {
-                                "SAVED"
-                            } else {
-                                "UNSAVED"
-                            }
-                        ));
+                        ui.label(format!("PROJECT: {}", self.world.project_label()));
                     });
                 });
             });

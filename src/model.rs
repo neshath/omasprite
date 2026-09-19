@@ -86,7 +86,6 @@ pub struct Project {
     pub name: String,
     pub path: String,
     pub level: u8,
-    pub saved: bool,
 }
 
 impl Default for Project {
@@ -95,7 +94,6 @@ impl Default for Project {
             name: "little-adventure".into(),
             path: "~/Games/little-adventure".into(),
             level: 3,
-            saved: true,
         }
     }
 }

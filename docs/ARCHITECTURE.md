@@ -1,5 +1,13 @@
 # Architecture
 
+## Current engineering decision
+
+Keep Rust/egui and the existing scene format while adding `src/project.rs` for graphics-independent project persistence. The current eframe dependency uses its default OpenGL backend; wgpu is not explicitly enabled. Preserve this during the project milestone to avoid unrelated renderer changes.
+
+Next extract simulation from `world.rs`, then add layered pixel rendering and assets. Full 3D would require model import, camera and lighting tooling beyond the first RPG. Layered 2D plus optional height data is sufficient for the first acceptance target; retain room for a separate 3D renderer later.
+
+The sections below describe the earlier intended modules. The implemented v1 format is specified in PROJECT_FORMAT.md and supersedes the earlier proposed TOML layout.
+
 OMASPRITE is organized around a native editor shell with replaceable domain modules. The beta keeps the first slice in one binary so it is easy to build and review; the boundaries are explicit before the codebase grows.
 
 ```text

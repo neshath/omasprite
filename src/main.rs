@@ -1,5 +1,6 @@
 mod app;
 mod model;
+mod project;
 mod theme;
 mod ui;
 mod world;
