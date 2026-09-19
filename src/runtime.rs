@@ -24,18 +24,22 @@ pub struct Runtime {
     pub log: Vec<String>,
 }
 impl Runtime {
+    fn npc_at(scene: &Scene, position: [usize; 2]) -> bool {
+        scene.npcs.iter().any(|n| *n == position)
+            || (scene.npcs.is_empty() && scene.npc == position)
+    }
     pub fn new(maps: BTreeMap<String, Scene>, entry: &str) -> Result<Self, String> {
         for scene in maps.values() {
             scene.validate()?;
             for p in &scene.portals {
                 let dest = maps.get(&p.map).ok_or("Portal destination map missing")?;
-                if !dest.walkable(p.spawn[0], p.spawn[1]) || p.spawn == dest.npc {
+                if !dest.walkable(p.spawn[0], p.spawn[1]) || Self::npc_at(dest, p.spawn) {
                     return Err("Portal destination is blocked".into());
                 }
             }
         }
         let scene = maps.get(entry).ok_or("Entry map missing")?;
-        if !scene.walkable(scene.spawn[0], scene.spawn[1]) || scene.spawn == scene.npc {
+        if !scene.walkable(scene.spawn[0], scene.spawn[1]) || Self::npc_at(scene, scene.spawn) {
             return Err("Player spawn is blocked".into());
         }
         let position = scene.spawn;
@@ -68,7 +72,7 @@ impl Runtime {
         let next = [nx as usize, ny as usize];
         let s = self.scene();
         if !s.walkable(next[0], next[1])
-            || next == s.npc
+            || Self::npc_at(s, next)
             || s.heights[next[1] * 16 + next[0]].abs_diff(s.heights[y * 16 + x]) > 1
         {
             return false;
@@ -99,8 +103,13 @@ impl Runtime {
             return;
         }
         let p = self.state.position;
-        let n = self.scene().npc;
-        if p[0].abs_diff(n[0]) + p[1].abs_diff(n[1]) == 1 {
+        if self
+            .scene()
+            .npcs
+            .iter()
+            .chain(std::iter::once(&self.scene().npc))
+            .any(|n| p[0].abs_diff(n[0]) + p[1].abs_diff(n[1]) == 1)
+        {
             self.page = Some(0);
         }
     }
@@ -115,7 +124,7 @@ impl Runtime {
             .ok_or("Save references unknown map")?;
         if save.version != 1
             || !scene.walkable(save.position[0], save.position[1])
-            || save.position == scene.npc
+            || Self::npc_at(scene, save.position)
         {
             return Err("Invalid game save position/version".into());
         }

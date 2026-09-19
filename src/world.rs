@@ -16,6 +16,8 @@ pub struct Scene {
     pub collision: Vec<bool>,
     pub heights: Vec<u8>,
     pub npc: [usize; 2],
+    #[serde(default)]
+    pub npcs: Vec<[usize; 2]>,
     pub spawn: [usize; 2],
     pub dialogue: String,
     pub ambient: f32,
@@ -34,6 +36,7 @@ impl Default for Scene {
             collision: default_collision(),
             heights: vec![0; 256],
             npc: [8, 7],
+            npcs: vec![[8, 7]],
             spawn: [8, 9],
             dialogue: "Welcome! Build your village and tell its story.".into(),
             ambient: 0.85,
@@ -55,6 +58,7 @@ impl Scene {
             || self.tiles.iter().any(|v| *v > 4)
             || self.heights.iter().any(|v| *v > 4)
             || self.npc.iter().chain(self.spawn.iter()).any(|v| *v >= 16)
+            || self.npcs.iter().any(|n| n.iter().any(|v| *v >= 16))
             || !self.ambient.is_finite()
             || !(0.2..=1.0).contains(&self.ambient)
         {
@@ -472,7 +476,14 @@ impl World {
                     let xy = [x as usize, y as usize];
                     let idx = xy[1] * 16 + xy[0];
                     match self.brush {
-                        5 => self.scene.npc = xy,
+                        5 => {
+                            self.scene.npc = xy;
+                            if self.scene.npcs.is_empty() {
+                                self.scene.npcs.push(xy);
+                            } else {
+                                self.scene.npcs[0] = xy;
+                            }
+                        }
                         6 => self.scene.spawn = xy,
                         7 => {
                             self.scene.portals.retain(|p| p.at != xy);
@@ -572,13 +583,19 @@ impl World {
                         Color32::from_rgb(237, 244, 248),
                     );
                 }
-                for (xy, col) in [
-                    (scene.npc, Color32::from_rgb(93, 161, 235)),
-                    (
-                        if playing { self.player } else { scene.spawn },
-                        Color32::from_rgb(224, 67, 135),
-                    ),
-                ] {
+                let mut actors = if scene.npcs.is_empty() {
+                    vec![scene.npc]
+                } else {
+                    scene.npcs.clone()
+                }
+                .into_iter()
+                .map(|xy| (xy, Color32::from_rgb(93, 161, 235)))
+                .collect::<Vec<_>>();
+                actors.push((
+                    if playing { self.player } else { scene.spawn },
+                    Color32::from_rgb(224, 67, 135),
+                ));
+                for (xy, col) in actors {
                     if xy == [x, y] {
                         let foot = top.center();
                         if col == Color32::from_rgb(224, 67, 135)
