@@ -1,3 +1,4 @@
+mod advanced;
 mod app;
 mod model;
 mod project;

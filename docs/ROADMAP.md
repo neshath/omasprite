@@ -29,6 +29,7 @@ The historical checkboxes below describe preview panels, not completion of these
 - Layer compositing and animation frame data.
 - [x] Tile stamps, map chunks, collision painting, and camera preview primitives.
 - Dialogue choices, portraits, conditions, and scene event hooks.
+- Data contracts now exist in `src/advanced.rs` for choices, conditions, portraits, and hooks; egui authoring/runtime wiring remains.
 - [x] Play mode with a tiny deterministic 2D runtime.
 
 ## Beta 3 — mood and logic
@@ -37,6 +38,7 @@ The historical checkboxes below describe preview panels, not completion of these
 - Particle/weather emitters and GPU-backed shader graph foundations.
 - Visual logic nodes: event, condition, action, signal, and playtest.
 - Human-readable Lua export for advanced creators.
+- Data-only visual nodes, particle emitters, shader graph source contracts, reviewable Lua export, and capability-checked plugin manifests now exist in `src/advanced.rs`; execution and sandbox hosting remain.
 
 ## Proposal-ready direction
 
