@@ -28,6 +28,7 @@ The historical checkboxes below describe preview panels, not completion of these
 - Character direction sets, animation clips, portraits, and palette variants.
 - Layer compositing and animation frame data.
 - Tile stamps, map chunks, collision painting, and camera preview.
+- Deterministic tile stamps and a clamped camera-follow primitive now land in `src/tilemap.rs`; egui map preview integration remains next.
 - Dialogue choices, portraits, conditions, and scene event hooks.
 - Play mode with a tiny deterministic 2D runtime.
 

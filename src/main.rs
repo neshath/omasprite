@@ -4,6 +4,7 @@ mod project;
 mod runtime;
 mod sprite;
 mod theme;
+mod tilemap;
 mod ui;
 mod world;
 
