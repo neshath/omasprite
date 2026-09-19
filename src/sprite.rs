@@ -14,6 +14,32 @@ impl Default for Sprite {
     }
 }
 impl Sprite {
+    pub fn from_png(path: &std::path::Path) -> Result<Self, String> {
+        let image = image::open(path)
+            .map_err(|e| format!("{}: {e}", path.display()))?
+            .to_rgba8();
+        if image.width() != 16 || image.height() != 24 {
+            return Err("Sprite PNG must be exactly 16×24 pixels".into());
+        }
+        let pixels = image.pixels().map(|p| p.0).collect();
+        Ok(Self {
+            frames: vec![pixels],
+            frame_ms: 160,
+        })
+    }
+    pub fn save_png(&self, path: &std::path::Path, frame: usize) -> Result<(), String> {
+        if !self.validate() {
+            return Err("Cannot export invalid sprite".into());
+        }
+        let pixels = &self.frames[frame % self.frames.len()];
+        let mut image = image::RgbaImage::new(16, 24);
+        for (i, pixel) in pixels.iter().enumerate() {
+            image.put_pixel((i % 16) as u32, (i / 16) as u32, image::Rgba(*pixel));
+        }
+        image
+            .save(path)
+            .map_err(|e| format!("{}: {e}", path.display()))
+    }
     pub fn fill(&mut self, frame: usize, x: usize, y: usize, color: [u8; 4]) {
         if frame >= self.frames.len() || x >= 16 || y >= 24 {
             return;
@@ -231,5 +257,16 @@ mod tests {
         let restored: Sprite = serde_json::from_slice(&serde_json::to_vec(&s).unwrap()).unwrap();
         assert!(restored.validate());
         assert_eq!(restored.frames, s.frames);
+    }
+    #[test]
+    fn png_roundtrip_preserves_pixels() {
+        let root =
+            std::env::temp_dir().join(format!("omasprite-sprite-{}.png", std::process::id()));
+        let mut sprite = Sprite::default();
+        sprite.frames[0][16 + 2] = [1, 2, 3, 255];
+        sprite.save_png(&root, 0).unwrap();
+        let loaded = Sprite::from_png(&root).unwrap();
+        assert_eq!(loaded.frames[0][18], [1, 2, 3, 255]);
+        std::fs::remove_file(root).unwrap();
     }
 }

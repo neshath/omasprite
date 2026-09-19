@@ -20,17 +20,16 @@ The historical checkboxes below describe preview panels, not completion of these
 - [x] Top-down map preview for overworld, town, and interior workflows.
 - [x] Dialogue box authoring/preview for story-driven scenes.
 - [x] Character Workshop and Lighting & FX foundations.
-- [ ] Persist a real project manifest and undo/redo command history.
+- [x] Persist a real project manifest and scene/sprite undo/redo history.
 
 ## Beta 2 — make the loop real
 
-- Pixel buffer editing with file-backed PNG import/export.
+- [x] Pixel buffer editing with file-backed PNG import/export.
 - Character direction sets, animation clips, portraits, and palette variants.
 - Layer compositing and animation frame data.
-- Tile stamps, map chunks, collision painting, and camera preview.
-- Deterministic tile stamps and a clamped camera-follow primitive now land in `src/tilemap.rs`; egui map preview integration remains next.
+- [x] Tile stamps, map chunks, collision painting, and camera preview primitives.
 - Dialogue choices, portraits, conditions, and scene event hooks.
-- Play mode with a tiny deterministic 2D runtime.
+- [x] Play mode with a tiny deterministic 2D runtime.
 
 ## Beta 3 — mood and logic
 
