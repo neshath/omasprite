@@ -24,7 +24,7 @@ Play the included original fixture with `cargo run --locked -- --play examples/s
 
 The app opens in the functional editor. **F1** opens a clearly labeled reference-image viewer using the supplied canonical artwork; F1 returns to editing. The reference image is not an interactive editor or evidence of visual parity.
 
-OMASPRITE is the native, open-source pixel game editor for Omarchy Linux. It is designed to grow with the creator: a child can start with a pencil and Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
+OMASPRITE is the native, open-source pixel game workstation for Omarchy Linux. It is designed to grow with the creator: a child can start at HOME with a new game and a Play button, while an advanced user can progressively unlock tilemaps, animation, lighting, visual logic, scripting, and plugins.
 
 This repository is the **Game Editor Beta** proposal: a focused, working editor shell that proves the adaptive workspace and the first creation loop. It is intentionally honest about what is implemented and what is staged next.
 
@@ -34,6 +34,8 @@ OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fanta
 
 ## Current beta slice
 
+The workstation direction is documented in [docs/WORKSTATION.md](docs/WORKSTATION.md). The default surface is intentionally small: HOME, GFX, MAP, LOGIC, CHARACTER, FX, and PLAY. Deeper panels are available through the tool tray or Advanced mode.
+
 - Native Rust desktop window powered by `eframe`/`egui` using eframe's platform OpenGL backend.
 - Sprite Lab / World Builder / Visual Logic workspace switching.
 - Canvas preview with a crisp pixel-scene composition, frame controls, playback, onion-skin toggle, zoom, and tool cursor.
@@ -41,7 +43,7 @@ OMASPRITE is inspired by beginner-friendly game makers, pixel-art editors, fanta
 - Dialogue box authoring and preview with editable speaker and line fields, ready for portraits, choices, and event hooks.
 - Character Workshop foundation with direction/animation setup and a character preview canvas.
 - Lighting & FX foundation with pixel lights, ambient level, shadow toggle, radius, and particle density controls.
-- Beginner-friendly tool rail, layers, palette, project status, asset browser, and unlock path.
+- Beginner-friendly workstation shell with a Home screen, Simple/Advanced modes, fold-out tool tray, layers, palette, project status, asset browser, and unlock path.
 - Creator level model with a clear progression from sprite painting to plugins.
 - Local-first versioned project folders with scene revisions, migration checks, and game progress saves.
 
@@ -75,7 +77,7 @@ This installs the binary into `~/.local/bin`, registers a desktop launcher, and 
 | Action | Control |
 | --- | --- |
 | Play / pause preview | `PLAY` button or animation controls |
-| Switch workspace | `SPRITE`, `WORLD`, `LOGIC`, `CHARACTER`, `FX` |
+| Switch workspace | `GFX`, `MAP`, `LOGIC`, `CHARACTER`, `FX` |
 | Toggle dialogue preview | `DIALOGUE` button or inspector checkbox |
 | Choose map style | World Builder → Overworld / Town / Interior |
 | Tune lighting | Lighting & FX → ambient / radius / particle sliders |
@@ -94,7 +96,7 @@ GitHub Actions runs these checks on pushes and pull requests.
 
 ## Design direction
 
-The beta follows the supplied Omasprite-style reference: dark graphite chrome, chunky monospace controls, hot magenta and violet accents, lime progress signals, and a large scene-first canvas. See [PRODUCT.md](PRODUCT.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
+The beta follows the supplied Omasprite-style reference while adopting a fantasy-workstation workflow: dark graphite chrome, a compact workspace bar, a fold-out tray, progressive disclosure, and a large scene-first canvas. See [PRODUCT.md](PRODUCT.md), [docs/WORKSTATION.md](docs/WORKSTATION.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing
 

@@ -16,8 +16,8 @@ fn section_heading(ui: &mut egui::Ui, title: &str) {
 }
 
 pub fn tools_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
-    ui.label(egui::RichText::new("Navigator").size(20.0).strong());
-    ui.label(egui::RichText::new("Your project, in one place.").color(theme::MUTED));
+    ui.label(egui::RichText::new("Tool tray").size(20.0).strong());
+    ui.label(egui::RichText::new("Open it only when you need more.").color(theme::MUTED));
     section_heading(ui, "Project");
     ui.label(egui::RichText::new(&app.project.name).strong());
     ui.label(
@@ -168,6 +168,11 @@ pub fn inspector_panel(ui: &mut egui::Ui, app: &mut StudioApp) {
             .color(theme::MUTED),
     );
     ui.separator();
+    if app.workspace == Workspace::Home {
+        section_heading(ui, "Start here");
+        ui.label("Choose New Game or Continue from the home screen. Advanced tools stay available in this tray whenever you need them.");
+        return;
+    }
     section_heading(ui, "Project");
     ui.label(egui::RichText::new(&app.project.name).strong());
     ui.label(

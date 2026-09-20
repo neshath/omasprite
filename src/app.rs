@@ -1,5 +1,5 @@
 use crate::{
-    model::{MapStyle, Project, Tool, Workspace},
+    model::{CreatorMode, MapStyle, Project, Tool, Workspace},
     theme, ui,
 };
 use eframe::egui::{self, Align, Color32, Layout, Sense, Vec2};
@@ -10,6 +10,9 @@ pub struct StudioApp {
     world: crate::world::World,
     pub project: Project,
     pub workspace: Workspace,
+    pub mode: CreatorMode,
+    pub tray_open: bool,
+    pub recent_project: String,
     pub tool: Tool,
     pub frame: usize,
     pub onion_skin: bool,
@@ -56,7 +59,10 @@ impl StudioApp {
             reference_texture,
             world: crate::world::World::default(),
             project: Project::default(),
-            workspace: Workspace::World,
+            workspace: Workspace::Home,
+            mode: CreatorMode::Simple,
+            tray_open: false,
+            recent_project: "little-adventure".into(),
             tool: Tool::Pencil,
             frame: 23,
             onion_skin: true,
@@ -104,14 +110,24 @@ impl StudioApp {
     fn topbar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.add_space(8.0);
-            ui.label(egui::RichText::new("OMASPRITE").size(18.0).strong());
             ui.label(
-                egui::RichText::new("Game Editor Beta")
+                egui::RichText::new("OMASPRITE")
+                    .size(18.0)
+                    .strong()
+                    .color(theme::BRAND),
+            );
+            ui.label(
+                egui::RichText::new("Workstation")
                     .small()
                     .color(theme::MUTED),
             );
             ui.separator();
-            ui.label(egui::RichText::new(self.world.project_label()).color(theme::MUTED));
+            let project_title = if self.workspace == Workspace::Home {
+                "Ready to make something".to_string()
+            } else {
+                self.world.project_label()
+            };
+            ui.label(egui::RichText::new(project_title).color(theme::MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let play_label = if self.playing { "Stop" } else { "Play" };
                 if ui
@@ -130,6 +146,30 @@ impl StudioApp {
                 }
                 if ui.button("Save").clicked() {
                     self.world.save();
+                }
+                if ui
+                    .button(if self.tray_open {
+                        "Close tools"
+                    } else {
+                        "Tools"
+                    })
+                    .clicked()
+                {
+                    self.tray_open = !self.tray_open;
+                }
+                if ui
+                    .selectable_label(self.mode == CreatorMode::Advanced, "Advanced")
+                    .clicked()
+                {
+                    self.mode = CreatorMode::Advanced;
+                    self.tray_open = true;
+                }
+                if ui
+                    .selectable_label(self.mode == CreatorMode::Simple, "Simple")
+                    .clicked()
+                {
+                    self.mode = CreatorMode::Simple;
+                    self.tray_open = false;
                 }
                 if ui
                     .button("Reference")
@@ -152,15 +192,16 @@ impl StudioApp {
             .inner_margin(egui::Margin::same(3.0))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    for (w, label) in [
-                        (Workspace::Sprite, "Sprite"),
-                        (Workspace::World, "World"),
-                        (Workspace::Logic, "Logic"),
-                        (Workspace::Character, "Character"),
-                        (Workspace::Effects, "Effects"),
+                    for w in [
+                        Workspace::Home,
+                        Workspace::Sprite,
+                        Workspace::World,
+                        Workspace::Logic,
+                        Workspace::Character,
+                        Workspace::Effects,
                     ] {
                         let selected = self.workspace == w;
-                        let response = ui.add(egui::Button::new(label).fill(if selected {
+                        let response = ui.add(egui::Button::new(w.label()).fill(if selected {
                             theme::HOT
                         } else {
                             Color32::TRANSPARENT
@@ -184,13 +225,13 @@ impl StudioApp {
             ui.label(egui::RichText::new(self.workspace.label()).strong());
             ui.separator();
             ui.label(
-                egui::RichText::new("Create, preview, refine")
+                egui::RichText::new(self.workspace.detail())
                     .small()
                     .color(theme::MUTED),
             );
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.label(
-                    egui::RichText::new("16 × 16 scene")
+                    egui::RichText::new(format!("{} mode", self.mode.label()))
                         .small()
                         .color(theme::MUTED),
                 );
@@ -198,7 +239,77 @@ impl StudioApp {
         });
     }
 
+    fn home_screen(&mut self, ui: &mut egui::Ui) {
+        let available = ui.available_size();
+        let panel = egui::Rect::from_center_size(
+            ui.max_rect().center(),
+            egui::vec2(available.x.min(720.0), available.y.min(440.0)),
+        );
+        egui::Frame::default()
+            .fill(theme::PANEL_DEEP)
+            .rounding(egui::Rounding::same(12.0))
+            .inner_margin(egui::Margin::symmetric(34.0, 30.0))
+            .show(ui, |ui| {
+                ui.set_max_width(panel.width());
+                ui.vertical_centered(|ui| {
+                    ui.label(egui::RichText::new("Make a small game.").size(30.0).strong());
+                    ui.label(
+                        egui::RichText::new("Start with pictures, a map, and a Play button.")
+                            .color(theme::MUTED),
+                    );
+                    ui.add_space(24.0);
+                    ui.horizontal(|ui| {
+                        let continue_label = format!(
+                            "CONTINUE  {}",
+                            self.recent_project.to_uppercase()
+                        );
+                        if ui
+                            .add_sized([180.0, 56.0], egui::Button::new("NEW GAME").fill(theme::HOT))
+                            .clicked()
+                        {
+                            self.world = crate::world::World::default();
+                            self.world.status = "Snow Village starter scene · unsaved".into();
+                            self.workspace = Workspace::World;
+                        }
+                        if ui
+                            .add_sized([180.0, 56.0], egui::Button::new(continue_label))
+                            .clicked()
+                        {
+                            self.world.start();
+                            self.workspace = Workspace::World;
+                        }
+                    });
+                    ui.add_space(20.0);
+                    ui.separator();
+                    ui.label(egui::RichText::new("Everything else is still here").strong());
+                    ui.label(
+                        egui::RichText::new("Open Tools or choose Advanced when you are ready for layers, logic, lighting, and plugins.")
+                            .small()
+                            .color(theme::MUTED),
+                    );
+                    ui.add_space(12.0);
+                    ui.horizontal_wrapped(|ui| {
+                        for (workspace, label) in [
+                            (Workspace::Sprite, "GFX"),
+                            (Workspace::World, "MAP"),
+                            (Workspace::Logic, "LOGIC"),
+                            (Workspace::Character, "CHARACTER"),
+                            (Workspace::Effects, "FX"),
+                        ] {
+                            if ui.button(label).clicked() {
+                                self.workspace = workspace;
+                            }
+                        }
+                    });
+                });
+            });
+    }
+
     fn canvas(&mut self, ui: &mut egui::Ui) {
+        if self.workspace == Workspace::Home {
+            self.home_screen(ui);
+            return;
+        }
         if self.playing {
             self.world.show(ui, true);
             return;
@@ -243,6 +354,7 @@ impl StudioApp {
 
     fn authoring_controls(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| match self.workspace {
+            Workspace::Home => {}
             Workspace::Logic => {
                 ui.label("LOGIC GRAPH");
                 if ui.button("+ Event node").clicked() {
@@ -697,37 +809,39 @@ impl eframe::App for StudioApp {
                     .inner_margin(egui::Margin::symmetric(16.0, 6.0)),
             )
             .show(ctx, |ui| self.contextbar(ui));
-        egui::SidePanel::left("navigator")
-            .resizable(true)
-            .default_width(236.0)
-            .min_width(210.0)
-            .frame(
-                egui::Frame::default()
-                    .fill(theme::PANEL_DEEP)
-                    .inner_margin(egui::Margin::symmetric(14.0, 12.0)),
-            )
-            .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| ui::tools_panel(ui, self));
-            });
-        egui::SidePanel::right("inspector")
-            .resizable(true)
-            .default_width(312.0)
-            .frame(
-                egui::Frame::default()
-                    .fill(theme::PANEL)
-                    .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
-            )
-            .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui::inspector_panel(ui, self);
-                    ui.collapsing("Keyboard and accessibility", |ui| {
-                        ui.label(format!("Play: {} · Stop: Escape", self.keyboard.play));
-                        ui.label(format!("Move: {}/{}/{}/{} · Talk: {}", self.keyboard.up, self.keyboard.down, self.keyboard.left, self.keyboard.right, self.keyboard.interact));
-                        ui.label(format!("{} labelled regions · contrast {} · keyboard audit {}", self.accessibility.labels.len(), if self.accessibility.contrast_checked { "checked" } else { "pending" }, if self.accessibility.keyboard_complete { "complete" } else { "in progress" }));
-                        ui.label("Tab moves between controls. Space activates Play. Number keys select dialogue choices.");
+        if self.tray_open || self.mode == CreatorMode::Advanced {
+            egui::SidePanel::left("tool_tray")
+                .resizable(true)
+                .default_width(236.0)
+                .min_width(210.0)
+                .frame(
+                    egui::Frame::default()
+                        .fill(theme::PANEL_DEEP)
+                        .inner_margin(egui::Margin::symmetric(14.0, 12.0)),
+                )
+                .show(ctx, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| ui::tools_panel(ui, self));
+                });
+            egui::SidePanel::right("inspector")
+                .resizable(true)
+                .default_width(312.0)
+                .frame(
+                    egui::Frame::default()
+                        .fill(theme::PANEL)
+                        .inner_margin(egui::Margin::symmetric(16.0, 14.0)),
+                )
+                .show(ctx, |ui| {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        ui::inspector_panel(ui, self);
+                        ui.collapsing("Keyboard and accessibility", |ui| {
+                            ui.label(format!("Play: {} · Stop: Escape", self.keyboard.play));
+                            ui.label(format!("Move: {}/{}/{}/{} · Talk: {}", self.keyboard.up, self.keyboard.down, self.keyboard.left, self.keyboard.right, self.keyboard.interact));
+                            ui.label(format!("{} labelled regions · contrast {} · keyboard audit {}", self.accessibility.labels.len(), if self.accessibility.contrast_checked { "checked" } else { "pending" }, if self.accessibility.keyboard_complete { "complete" } else { "in progress" }));
+                            ui.label("Tab moves between controls. Space activates Play. Number keys select dialogue choices.");
+                        });
                     });
                 });
-            });
+        }
         egui::CentralPanel::default()
             .frame(
                 egui::Frame::default()

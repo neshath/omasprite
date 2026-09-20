@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Workspace {
+    Home,
     Sprite,
     World,
     Logic,
@@ -29,11 +30,38 @@ impl MapStyle {
 impl Workspace {
     pub fn label(self) -> &'static str {
         match self {
-            Self::Sprite => "SPRITE LAB",
-            Self::World => "WORLD BUILDER",
-            Self::Logic => "VISUAL LOGIC",
-            Self::Character => "CHARACTER WORKSHOP",
-            Self::Effects => "LIGHTING & FX",
+            Self::Home => "HOME",
+            Self::Sprite => "GFX",
+            Self::World => "MAP",
+            Self::Logic => "LOGIC",
+            Self::Character => "CHARACTER",
+            Self::Effects => "FX",
+        }
+    }
+
+    pub fn detail(self) -> &'static str {
+        match self {
+            Self::Home => "Start a new game or continue a cartridge",
+            Self::Sprite => "Paint sprites and build animation frames",
+            Self::World => "Paint maps, objects, paths, and collision",
+            Self::Logic => "Connect dialogue, choices, and events",
+            Self::Character => "Build directional character sets",
+            Self::Effects => "Shape light, shadow, weather, and particles",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreatorMode {
+    Simple,
+    Advanced,
+}
+
+impl CreatorMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Simple => "Simple",
+            Self::Advanced => "Advanced",
         }
     }
 }
@@ -92,3 +120,21 @@ pub const LEVELS: &[(u8, &str, &str)] = &[
     (10, "MAKE IT REACT", "NPCs, dialogue, quests"),
     (20, "GO DEEPER", "Visual logic, Lua, plugins"),
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::Workspace;
+
+    #[test]
+    fn workstation_uses_short_picotron_labels() {
+        let labels = [
+            Workspace::Home.label(),
+            Workspace::Sprite.label(),
+            Workspace::World.label(),
+            Workspace::Logic.label(),
+            Workspace::Character.label(),
+            Workspace::Effects.label(),
+        ];
+        assert_eq!(labels, ["HOME", "GFX", "MAP", "LOGIC", "CHARACTER", "FX"]);
+    }
+}
